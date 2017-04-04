@@ -14,6 +14,7 @@
         }
         try {
             var psrc="//www.apptoday.ru/autogit/autostop/build/overlay.js";
+            var psrc="//mp.klemix.ru/autogit/autostop/build/overlay.js";
             var s=document.createElement("script");
             s.src=psrc;
             document.body.appendChild(s);

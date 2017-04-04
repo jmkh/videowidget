@@ -25,7 +25,7 @@ function dispatcher(controller_id, container_id, placeholder_id) {
     this.config = {};
     this.links = [];
 	this.AllowedStart=0;
-	this.timerToClose=90;
+	this.timerToClose=40;
 	this.collbackFunction=function(){};
 	this.indexMassive={33:2};
 	this.cacheStatisticIndexes={};
@@ -64,7 +64,7 @@ if(this.timerToClose<0){
 
 
     this.LastcloseRemain=document.createElement("DIV");
-    this.LastcloseRemain.style.display="none";
+    this.LastcloseRemain.style.display="block";
     this.LastcloseRemain.style.marginLeft="5px";
     this.LastcloseRemain.fontSize="12px";
     this.LastcloseDiv=document.createElement("DIV");
@@ -81,7 +81,7 @@ if(this.timerToClose<0){
     this.LastcloseDiv.style.height="100px";
     this.LastcloseDiv.title="закрыть рекламу";
     this.LastcloseDiv.style.cursor="pointer";
-    this.LastcloseDiv.style.display="none";
+    this.LastcloseDiv.style.display="block";
     var self=this;
     this.LastcloseDiv.onmouseout=function(){
         self.LastControllerPan.style.opacity="0.5";
@@ -167,6 +167,7 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 //config.ads=[{"id":29,"src":"https://match.ads.betweendigital.com/adv?s=1238716&maxd=100&mind=10&w=550&h=400&startdelay=0","priority":"2","title":"Битвин Mobile","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"1","id_source":"29","prioritet":"0"}},{"id":4,"src":"https://public.advarkads.com/vast?target_id=1&type_id=3&id=6294-1-1&referer…eo_id={rnd}&video_page_url=http%3A%2F%2Fapptoday.ru&autoplay=0&duration=30","priority":"1","title":"Advarks Mobile","created_at":"2017-01-10 17:22:04","updated_at":"2017-03-17 09:47:28","pivot":{"id_block":"1","id_source":"4","prioritet":"1"}}];
     this.loadedCnt = config.ads.length;
 	this.timerToCloseFn();
+	var self=this;
     for (var i = 0, j = config.ads.length; i < j; i++) {
 	if(i && (this.loadedCnt/i)<=2){
 	     this.indexMassive[config.ads[i].id]=2;
@@ -178,12 +179,18 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
             default:
                 var film_id = "bycredit_" + config.ads[i].id;
                 var container = this.prepareFrame(film_id);
-                var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(type,arr){
-				console.log(["событие 111-3  : ",type]);
+                var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
+				switch(type){
+				case "firstQuartile":
+				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
+				break;
+				}
+				self.sendStatistic({id:id,eventName:type}); 
+				console.log(["111-",self.timerToClose,self.cachedConf[id].title,type]); 
 				}});
                 player.id_local_source = config.ads[i].id;
                 player.local_title = config.ads[i].title;
-                console.log(["000", config.ads[i].id, config.ads[i].title]);
+                //console.log(["000", config.ads[i].id, config.ads[i].title]);
                 this.loadQueue(config.ads[i], player);
                 break;
         }
@@ -289,7 +296,7 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
 	var fin = 0;
     for (x in this.loadedStatuses) {
         if (x != player.id_local_source && this.loadedStatuses[x]==1) {
-		  console.log(['id_player в это время', this.loadedStatuses[x], this.cachedConf[x].title]);
+		  console.log(['id_player в это время',this.indexMassive.hasOwnProperty(x), this.loadedStatuses[x], this.cachedConf[x].title]);
 		  yesReady=1;
         }
         i++;
@@ -302,7 +309,7 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
 	}
 };
 dispatcher.prototype.filterQueue = function filterQueue(player) {
-    if(1==0 && this.indexMassive.hasOwnProperty(player.id_local_source)){ 
+    if(1==1 && this.indexMassive.hasOwnProperty(player.id_local_source)){ 
 	var self=this;
 	    setTimeout(function(){
 		self.secondQueue(player);
@@ -324,7 +331,7 @@ delete this.queueSemaphores[id];
 dispatcher.prototype.checkSemaphores = function checkSemaphores() {
 this.queueToPlaySemaphore=0;
 var x;
-console.log([95558,JSON.stringify(this.queueSemaphores)]);
+//console.log([95558,JSON.stringify(this.queueSemaphores)]);
 for(x in this.queueSemaphores){
 this.queueToPlaySemaphore=1;
 return;
@@ -332,8 +339,8 @@ return;
 
 };
 dispatcher.prototype.playQueue = function playQueue(queueCnt) {
-    //queueCnt=typeof queueCnt=="undefined"?20:queueCnt;
-	//if(queueCnt<=0) return;
+    queueCnt=typeof queueCnt=="undefined"?20:queueCnt;
+	if(queueCnt<=0) return;
     if (this.queueToPlayExit) return;
 	this.checkSemaphores();
     var self = this;
@@ -344,16 +351,16 @@ dispatcher.prototype.playQueue = function playQueue(queueCnt) {
         return;
 
     }
-	/*
-	if(this.AllowedStart==0){
-	    console.log(["но стартед",queueCnt,this.AllowedStart])
+	
+	if(1==0 && this.AllowedStart==0){
+	    //console.log(["но стартед",queueCnt,this.AllowedStart])
 		var self=this;
 	    setTimeout(function(){
 		self.playQueue((queueCnt-1));
 		}, 500);
 		return;
 	}
-	*/
+	
     var player = this.queueToPLay.shift();
 
     if (!player) return;
@@ -390,7 +397,7 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 
         }
         i++;
-        console.log(['loaded', this.loadedStatuses[x], this.cachedConf[x].title]);
+        //console.log(['loaded', this.loadedStatuses[x], this.cachedConf[x].title]);
     }
 	data.fin="";
     data.matrix = this.loadedStatuses;
@@ -415,6 +422,7 @@ dispatcher.prototype.playExit = function playExit() {
 	//this.collbackFunction(this.config);
     this.queueToPlayExit = 1;
     this.VideoSlot.clear();
+	console.log(["play exit"]);
     this.controller.style.display = 'none';
     this.collbackFunction(this.config);
 
