@@ -415,11 +415,11 @@ dispatcher.prototype.playQueue = function playQueue(queueCnt) {
     var player = this.queueToPLay.shift();
 
     if (!player) return;
-
+   
     this.setSemaphore(player.id_local_source);
     this.playedCnt++;
 	
-
+   console.log([95558,'cont',player]);
 	
 	
     var container = player.container;
