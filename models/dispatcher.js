@@ -25,11 +25,12 @@ function dispatcher(controller_id, container_id, placeholder_id) {
     this.config = {};
     this.links = [];
 	this.AllowedStart=0;
-	this.timerToClose=40;
+	this.timerToClose=80;
 	this.collbackFunction=function(){};
 	this.indexMassive={33:2};
 	this.cacheStatisticIndexes={};
 	this.cookieUserid=CookieDriver.getUserID();
+	this.lastDriverId = 0;
 	
     this.referer = 'http://apptoday.ru';
     var self = this;
@@ -226,16 +227,17 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
     this.loadedStatuses[object.id] = 0;
     this.sendStatistic({id:object.id,eventName:'srcRequest'});  
 	
-   player.once('AdStopped', function () {
+    player.once('AdStopped', function () {
 
-        self.deleteSemaphore(player.id_local_source);
-        console.log([95558, 'Плеер закончился!', player.id_local_source, player.local_title]);
-        self.checkStatus({id: player.id_local_source, event: 'ended'});
+        self.deleteSemaphore(this.id_local_source);
+        console.log([95558, 'Плеер закончился!', this.id_local_source, player.local_title]);
+        self.checkStatus({id: this.id_local_source, event: 'ended'});
 		player.container.style.display="none";
     });
     player.once('AdError', function (reason) {
-	    self.sendTmp({id: player.id_local_source, event: 'on error :'+player.local_title});	
-        self.deleteSemaphore(player.id_local_source);
+		self.deleteSemaphore(this.id_local_source);
+	    self.sendTmp({id: this.id_local_source, event: 'on error :'+this.local_title});	
+        
 		var mess = '';
   	                if(typeof reason != 'undefined' && typeof reason.message != 'undefined'){
 	                mess=reason.message;
@@ -244,11 +246,11 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
 	                if(typeof reason != 'undefined') 
                     mess=JSON.stringify(reason);
 	                }
-	    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:mess}); 
-        console.log([95558, 'Ошибка плеера лог!', player.local_title, reason]);
-        self.loadedStatuses[player.id_local_source] = 2;
-        self.checkStatus({id: player.id_local_source, event: 'error : '+player.local_title});
-		player.container.style.display="none";
+	    self.sendStatistic({id:this.id_local_source,eventName:'errorPlayMedia',mess:mess}); 
+        console.log([95558, 'Ошибка плеера лог!', this.local_title, reason]);
+        self.loadedStatuses[this.id_local_source] = 2;
+        self.checkStatus({id: this.id_local_source, event: 'error : '+this.local_title});
+		this.container.style.display="none";
     });
     player.on('AdRemainingTimeChange',function(args) {
 	if(args.hasOwnProperty("sec") && args.sec && args.sec>3){
@@ -268,20 +270,23 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
             self.loadedStatuses[object.id] = 1;
             self.filterQueue(player); 
         }).catch(function (reason) {
+			self.deleteSemaphore(object.id);
             self.sendTmp({id: player.id_local_source, event: 'on noready :'+player.local_title});	
             self.loadedStatuses[object.id] = 2;
             console.log([95558, 'Плеер не готов', object.title, reason]);
-			self.deleteSemaphore(object.id);
+			
             self.checkStatus({id: object.id, event: 'error1'});
 			player.container.style.display="none";
         });
     }).catch(function (reason) {
-	    self.sendTmp({id: player.id_local_source, event: 'on noload :'+player.local_title});	
+	    
 	    //self.queueToPlaySemaphore = 0; 
 		self.deleteSemaphore(object.id);
         self.loadedStatuses[object.id] = 2;
+		
         console.log([95558, 'Плеер не загрузился', player.local_title, reason]);
         self.checkStatus({id: object.id, event: 'noload :'+player.local_title});
+		self.sendTmp({id: player.id_local_source, event: 'on noload :'+player.local_title});	
 		player.container.style.display="none";
 		
     });
@@ -320,11 +325,32 @@ dispatcher.prototype.filterQueue = function filterQueue(player) {
     this.playQueue();
 };
 dispatcher.prototype.setSemaphore = function setSemaphore(id) {
-this.queueSemaphores[id]=1;
+	var data={id:id,event:"set"+'|'+id};
+	data.fin="";
+    data.matrix = [];
+    data.status = [];
+	this.sendPixel(data);
+    this.queueSemaphores[id]=1;
 };
 dispatcher.prototype.deleteSemaphore = function deleteSemaphore(id) {
-if(typeof this.queueToPlaySemaphore !="undefined"){
+
+if(this.queueSemaphores.hasOwnProperty(id)){
+	var data={id:id,event:"delete|"+id+'|'+this.queueSemaphores.hasOwnProperty(id)+'|'+JSON.stringify(this.queueSemaphores)};
+	data.fin="";
+    data.matrix = [];
+    data.status = [];
+	this.sendPixel(data);
+	var data={id:id,event:"delete"};
+	data.fin="";
+    data.matrix = [];
+    data.status = [];
+	this.sendPixel(data);
 delete this.queueSemaphores[id];
+	var data={id:id,event:"delete|"+id+'|'+this.queueSemaphores.hasOwnProperty(id)+'|'+JSON.stringify(this.queueSemaphores)};
+	data.fin="";
+    data.matrix = [];
+    data.status = [];
+	this.sendPixel(data);
 }
 
 };
@@ -411,6 +437,7 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
     console.log([i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady]);
     if (noReady) return false;
     if (fin) {
+	this.lastDriverId = data.id;
         this.playExit();
         return true;
     }
@@ -421,6 +448,13 @@ dispatcher.prototype.playExit = function playExit() {
     if (this.queueToPlayExit) return;
 	//this.collbackFunction(this.config);
     this.queueToPlayExit = 1;
+	//this.lastDriverId 
+	var data={id:this.lastDriverId,event:"playExit"};
+	data.fin="";
+    data.matrix = [];
+    data.status = [];
+	this.sendPixel(data);
+	
     this.VideoSlot.clear();
 	console.log(["play exit"]);
     this.controller.style.display = 'none';
@@ -435,7 +469,12 @@ dispatcher.prototype.sendTmp = function sendTmp(data) {
 	this.sendPixel(data);
 };
 dispatcher.prototype.sendPixel = function sendPixel(data) {
-return;
+	if(this.config.isDesktop){ 
+	return; 
+	}else{
+    		
+	}
+
     var preRemoteData = {
         key: this.GlobalMyGUITemp,
         fromUrl: encodeURIComponent(this.fromUrl),
@@ -452,7 +491,7 @@ return;
     //var preToURL="http://widget2.market-place.su/admin/statistic/video/put?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData));
     var img = new Image(1, 1);
     img.src = preToURL;
-    //console.log(["send_log",preToURL]);
+    //console.log(["send_log",data.event]);
     return;
 };
 dispatcher.prototype.sendStatistic = function sendStatistic(data) 
