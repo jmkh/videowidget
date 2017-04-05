@@ -495,7 +495,7 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
     console.log([i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady]);
     if (noReady) return false;
     if (fin) {
-	if(cnt5){
+	if(cnt5 && cnt5>this.config.adslimit){
 	data.event="cntall";
 	this.sendPixel(data);
 	}
