@@ -27,7 +27,8 @@ function dispatcher(controller_id, container_id, placeholder_id) {
 	this.AllowedStart=0;
 	this.timerToClose=80;
 	this.collbackFunction=function(){};
-	this.indexMassive={33:2};
+	this.indexMassive={};
+	this.indexDefault={};
 	this.cacheStatisticIndexes={};
 	this.cookieUserid=CookieDriver.getUserID();
 	this.lastDriverId = 0;
@@ -136,6 +137,9 @@ dispatcher.prototype.clearController = function clearController() {
 dispatcher.prototype.showController = function showController() {
     this.controller.style.display = "block";
 };
+dispatcher.prototype.clearPlayerContainer = function clearPlayerContainer(obj) {
+   obj.parentNode.removeChild(obj);
+};
 dispatcher.prototype.clearContainer = function clearContainer() {
     this.container.style.display = "none";
 };
@@ -165,19 +169,36 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 
 	//return;
 //config.ads=[{"id":29,"src":"https://match.ads.betweendigital.com/adv?s=1238716&maxd=100&mind=10&w=550&h=400&startdelay=0","priority":"2","title":"Битвин Mobile","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"1","id_source":"29","prioritet":"0"}},{"id":4,"src":"https://public.advarkads.com/vast?target_id=1&type_id=3&id=6294-1-1&referer…eo_id={rnd}&video_page_url=http%3A%2F%2Fapptoday.ru&autoplay=0&duration=30","priority":"1","title":"Advarks Mobile","created_at":"2017-01-10 17:22:04","updated_at":"2017-03-17 09:47:28","pivot":{"id_block":"1","id_source":"4","prioritet":"1"}}];
-    this.loadedCnt = config.ads.length;
+    
 	this.timerToCloseFn();
+	var dopAds=[];
+    this.loadedCnt = config.ads.length;
+	if(this.config.hasOwnProperty("default")){
+	this.loadedCnt++;
+	this.indexDefault[-3]={};
+	var dopAds=[{"id":-3,"src":this.config.default,"priority":"10","title":"Заглушка","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-3","id_source":"-3","prioritet":"0"}}];
+	}
+	this.initQueue(config.ads);
+	
+	
+	if(dopAds.length>0){
+    this.initQueue(dopAds);
+	}
+};
+dispatcher.prototype.initQueue = function initQueue(arrLinks) {
+    this.indexMassive={};
+	
 	var self=this;
-    for (var i = 0, j = config.ads.length; i < j; i++) {
+    for (var i = 0, j = arrLinks.length; i < j; i++) {
 	if(i && (this.loadedCnt/i)<=2){
-	     this.indexMassive[config.ads[i].id]=2;
+	     this.indexMassive[arrLinks[i].id]=2;
 	     }
-        this.cachedConf[config.ads[i].id] = {title: config.ads[i].title};
-        switch (config.ads[i].id) {
+        this.cachedConf[arrLinks[i].id] = {title: arrLinks[i].title};
+        switch (arrLinks[i].id) {
 
 
             default:
-                var film_id = "bycredit_" + config.ads[i].id;
+                var film_id = "bycredit_" + arrLinks[i].id;
                 var container = this.prepareFrame(film_id);
                 var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
 				switch(type){
@@ -188,13 +209,12 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 				self.sendStatistic({id:id,eventName:type}); 
 				console.log(["111-",self.timerToClose,self.cachedConf[id].title,type]); 
 				}});
-                player.id_local_source = config.ads[i].id;
-                player.local_title = config.ads[i].title;
-                this.loadQueue(config.ads[i], player);
+                player.id_local_source = arrLinks[i].id;
+                player.local_title = arrLinks[i].title;
+                this.loadQueue(arrLinks[i], player);
                 break;
         }
     }
-//this.links=config.ads;
 };
 
 dispatcher.prototype.prepareFrame = function prepareFrame(id) {
@@ -222,19 +242,19 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
         }
         return match;
     });
-    this.loadedStatuses[object.id] = 0;
-    this.sendStatistic({id:object.id,eventName:'srcRequest'});  
+    this.loadedStatuses[ player.id_local_source] = 0;
+    this.sendStatistic({id:player.id_local_source,eventName:'srcRequest'});  
 	
     player.once('AdStopped', function () {
-
-        self.deleteSemaphore(this.id_local_source);
-        console.log([95558, 'Плеер закончился!', this.id_local_source, player.local_title]);
-        self.checkStatus({id: this.id_local_source, event: 'ended'});
-		player.container.style.display="none";
+        self.deleteSemaphore(player.id_local_source);
+        console.log([95558, 'Плеер закончился!', player.id_local_source, player.local_title]);
+        self.checkStatus({id: player.id_local_source, event: 'ended'});
+		self.clearPlayerContainer(player.container);
+		//player.container.style.display="none";
     });
     player.once('AdError', function (reason) {
-		self.deleteSemaphore(this.id_local_source);
-	    self.sendTmp({id: this.id_local_source, event: 'on error :'+this.local_title});	
+		self.deleteSemaphore(player.id_local_source);
+	    self.sendTmp({id: player.id_local_source, event: 'on error :'+player.local_title});	
         
 		var mess = '';
   	                if(typeof reason != 'undefined' && typeof reason.message != 'undefined'){
@@ -244,48 +264,51 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
 	                if(typeof reason != 'undefined') 
                     mess=JSON.stringify(reason);
 	                }
-	    self.sendStatistic({id:this.id_local_source,eventName:'errorPlayMedia',mess:mess}); 
-        console.log([95558, 'Ошибка плеера лог!', this.local_title, reason]);
-        self.loadedStatuses[this.id_local_source] = 2;
-        self.checkStatus({id: this.id_local_source, event: 'error : '+this.local_title});
-		this.container.style.display="none";
+	    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:mess}); 
+        console.log([95558, 'Ошибка плеера лог!', player.local_title, reason]);
+        self.loadedStatuses[player.id_local_source] = 2;
+        self.checkStatus({id: player.id_local_source, event: 'error : '+player.local_title});
+		self.clearPlayerContainer(player.container);
+		//this.container.style.display="none";
     });
     player.on('AdRemainingTimeChange',function(args) {
 	if(args.hasOwnProperty("sec") && args.sec && args.sec>3){
-	 self.sendStatistic({id:this.id_local_source,eventName:'filterPlayMedia'}); 
+	 self.sendStatistic({id:player.id_local_source,eventName:'filterPlayMedia'}); 
 	}
     });
     
-    self.sendTmp({id: object.id, event: 'try load :'+player.local_title});	
+    self.sendTmp({id: player.id_local_source, event: 'try load :'+player.local_title});	
     player.load(uri).then(function startAd() {
-    self.sendTmp({id: object.id, event: 'loaded ok :'+player.local_title});	
-        console.log([95558, 'Плеер заргузился', player.pType, object.id, object.title]);
+    self.sendTmp({id: player.id_local_source, event: 'loaded ok :'+player.local_title});	
+        console.log([95558, 'Плеер заргузился', player.pType, player.id_local_source, player.local_title]);
 		
         player.startAd().then(function (res) {
             player.pauseAd();
-            console.log([95558, 'Плеер готов', object.id, object.title]); 
+            console.log([95558, 'Плеер готов', player.id_local_source, player.local_title]); 
          
-            self.loadedStatuses[object.id] = 1;
+            self.loadedStatuses[player.id_local_source] = 1;
             self.filterQueue(player); 
         }).catch(function (reason) {
-			self.deleteSemaphore(object.id);
+			self.deleteSemaphore(player.id_local_source);
             self.sendTmp({id: player.id_local_source, event: 'on noready :'+player.local_title});	
-            self.loadedStatuses[object.id] = 2;
-            console.log([95558, 'Плеер не готов', object.title, reason]);
+            self.loadedStatuses[player.id_local_source] = 2;
+            console.log([95558, 'Плеер не готов', player.id_local_source, reason]);
 			
-            self.checkStatus({id: object.id, event: 'error1'});
-			player.container.style.display="none";
+            self.checkStatus({id: player.id_local_source, event: 'error1'});
+			self.clearPlayerContainer(player.container);
+			//player.container.style.display="none";
         });
     }).catch(function (reason) {
 	    
 	    //self.queueToPlaySemaphore = 0; 
-		self.deleteSemaphore(object.id);
-        self.loadedStatuses[object.id] = 2;
+		self.deleteSemaphore(player.id_local_source);
+        self.loadedStatuses[player.id_local_source] = 2;
 		
         console.log([95558, 'Плеер не загрузился', player.local_title, reason]);
-        self.checkStatus({id: object.id, event: 'noload :'+player.local_title});
-		self.sendTmp({id: player.id_local_source, event: 'on noload :'+player.local_title});	
-		player.container.style.display="none";
+        self.checkStatus({id: player.id_local_source, event: 'noload :'+player.local_title});
+		self.sendTmp({id: player.id_local_source, event: 'on noload :'+player.local_title});
+        self.clearPlayerContainer(player.container);		
+		//player.container.style.display="none";
 		
     });
 
@@ -311,6 +334,13 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
 	}
 };
 dispatcher.prototype.filterQueue = function filterQueue(player) {
+   
+     if(this.indexDefault.hasOwnProperty(player.id_local_source)){
+	   this.indexDefault[player.id_local_source]=player;
+	   this.checkStatus({id: player.id_local_source, event: 'def 1 :'+player.local_title});
+	   return;
+	  }
+
     if(1==1 && this.indexMassive.hasOwnProperty(player.id_local_source)){ 
 	var self=this;
 	    setTimeout(function(){
@@ -431,8 +461,20 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
     console.log([i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady]);
     if (noReady) return false;
     if (fin) {
-	this.lastDriverId = data.id;
-        this.playExit();
+	var z;
+	for (z in this.indexDefault){
+	console.log(["деф",z,this.indexDefault[z]]);
+	if(this.indexDefault[z]){
+	this.queueToPLay.push(this.indexDefault[z]);   
+    this.playQueue();
+	this.indexDefault[z] = null;
+	return;
+	}
+	}
+	
+	
+	    this.lastDriverId = data.id;
+	    this.playExit();
         return true;
     }
 
@@ -489,7 +531,11 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
 };
 dispatcher.prototype.sendStatistic = function sendStatistic(data) 
 {
-
+  if(this.indexDefault.hasOwnProperty(data.id)){
+  
+  return;
+  }
+ 
   var m='';
   if (typeof data.eventName=='undefined'){
   return;
