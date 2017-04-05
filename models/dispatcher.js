@@ -458,14 +458,17 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
     if (this.queueToPlayExit) return true;
 	
 	switch(this.mytype){
-	case "Autoplay":
+	//case "Autoplay":
 	case "Overlay":
 	default:
 	var ztn;
 	
 	for (ztn in this.playedAllCnt){
 	cnt5++;
-	console.log(["плейед",ztn,this.cachedConf[ztn].title,this.cachedConf[data.id].title]);
+	//console.log(["плейед",ztn,this.cachedConf[ztn].title,this.cachedConf[data.id].title]);
+	}
+	if(cnt5 && cnt5>this.config.adslimit){
+	
 	}
 	break;
 	}
@@ -493,7 +496,8 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	
     this.sendPixel(data);
     console.log([i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady]);
-    if (noReady) return false;
+    if (noReady) fin=0;
+	
     if (fin) {
 	if(cnt5 && cnt5>this.config.adslimit){
 	var old=data.event;
