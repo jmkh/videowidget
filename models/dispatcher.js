@@ -460,7 +460,6 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	switch(this.mytype){
 	//case "Autoplay":
 	case "Overlay":
-	default:
 	var ztn;
 	
 	for (ztn in this.playedAllCnt){
@@ -468,7 +467,18 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	//console.log(["плейед",ztn,this.cachedConf[ztn].title,this.cachedConf[data.id].title]);
 	}
 	if(cnt5 && cnt5>this.config.adslimit){
-	
+			var z;
+			for (z in this.indexDefault){
+			if(this.indexDefault[z]){
+			this.queueToPLay.push(this.indexDefault[z]);   
+			this.playQueue();
+			this.indexDefault[z] = null;
+			return true;
+			}
+			}
+	    this.lastDriverId = data.id;
+	    this.playExit();
+        return true;
 	}
 	break;
 	}
@@ -512,7 +522,7 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	this.queueToPLay.push(this.indexDefault[z]);   
     this.playQueue();
 	this.indexDefault[z] = null;
-	return;
+	return true;
 	}
 	}
 	
