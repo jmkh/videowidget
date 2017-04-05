@@ -43,7 +43,7 @@ function dispatcher(controller_id, container_id, placeholder_id) {
     }
     this.fromUrl = (window.location != window.parent.location) ? document.referrer : document.location.href;
     window.addEventListener("resize", function () {
-        console.log(['resize 1']);
+       
         self.calculateParameters();
     }, false);
     self.calculateParameters();
@@ -109,7 +109,6 @@ if(this.timerToClose<0){
 return;
   }
   this.timerToClose--;
-  //console.log(["осталось",this.timerToClose]);
   var self=this;
 	    setTimeout(function(){
 		self.timerToCloseFn();
@@ -118,7 +117,7 @@ return;
 };
 dispatcher.prototype.calculateParameters = function calculateParameters() {
 
-    var width = screen.width; // ширина
+    var width = screen.width; // ширина 
     var height = screen.height; // высота
     console.log("Разрешение окна клиента: " + width + "| x |" + height);
 
@@ -163,7 +162,7 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
         this.referer = config.referer;
     }
 	this.collbackFunction=collbackFunction;
-	//console.log(JSON.stringify(config.ads));
+
 	//return;
 //config.ads=[{"id":29,"src":"https://match.ads.betweendigital.com/adv?s=1238716&maxd=100&mind=10&w=550&h=400&startdelay=0","priority":"2","title":"Битвин Mobile","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"1","id_source":"29","prioritet":"0"}},{"id":4,"src":"https://public.advarkads.com/vast?target_id=1&type_id=3&id=6294-1-1&referer…eo_id={rnd}&video_page_url=http%3A%2F%2Fapptoday.ru&autoplay=0&duration=30","priority":"1","title":"Advarks Mobile","created_at":"2017-01-10 17:22:04","updated_at":"2017-03-17 09:47:28","pivot":{"id_block":"1","id_source":"4","prioritet":"1"}}];
     this.loadedCnt = config.ads.length;
@@ -191,7 +190,6 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 				}});
                 player.id_local_source = config.ads[i].id;
                 player.local_title = config.ads[i].title;
-                //console.log(["000", config.ads[i].id, config.ads[i].title]);
                 this.loadQueue(config.ads[i], player);
                 break;
         }
@@ -301,7 +299,6 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
 	var fin = 0;
     for (x in this.loadedStatuses) {
         if (x != player.id_local_source && this.loadedStatuses[x]==1) {
-		  console.log(['id_player в это время',this.indexMassive.hasOwnProperty(x), this.loadedStatuses[x], this.cachedConf[x].title]);
 		  yesReady=1;
         }
         i++;
@@ -357,7 +354,6 @@ delete this.queueSemaphores[id];
 dispatcher.prototype.checkSemaphores = function checkSemaphores() {
 this.queueToPlaySemaphore=0;
 var x;
-//console.log([95558,JSON.stringify(this.queueSemaphores)]);
 for(x in this.queueSemaphores){
 this.queueToPlaySemaphore=1;
 return;
@@ -379,7 +375,6 @@ dispatcher.prototype.playQueue = function playQueue(queueCnt) {
     }
 	
 	if(1==0 && this.AllowedStart==0){
-	    //console.log(["но стартед",queueCnt,this.AllowedStart])
 		var self=this;
 	    setTimeout(function(){
 		self.playQueue((queueCnt-1));
@@ -423,7 +418,6 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 
         }
         i++;
-        //console.log(['loaded', this.loadedStatuses[x], this.cachedConf[x].title]);
     }
 	data.fin="";
     data.matrix = this.loadedStatuses;
@@ -456,7 +450,6 @@ dispatcher.prototype.playExit = function playExit() {
 	this.sendPixel(data);
 	
     this.VideoSlot.clear();
-	//console.log(["play exit"]);
     this.controller.style.display = 'none';
     this.collbackFunction(this.config);
 
@@ -491,7 +484,6 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
     //var preToURL="http://widget2.market-place.su/admin/statistic/video/put?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData));
     var img = new Image(1, 1);
     img.src = preToURL;
-    //console.log(["send_log",data.event]);
     return;
 };
 dispatcher.prototype.sendStatistic = function sendStatistic(data) 
@@ -514,8 +506,6 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data)
   
   var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.config.pid,affiliate_id:this.config.affiliate_id,cookie_id:this.cookieUserid,id_src:data.id,event:data.eventName,mess:m}; 
   var toURL="https://api.market-place.su/Product/video/l1stat.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData));
-    //console.log(["статистика 1",data.eventName,preRemoteData]);
-    console.log(["статистика 2",data.eventName,data.id,data.eventName,toURL]);
     var img = new Image(1,1);
     img.src = toURL; 
    
