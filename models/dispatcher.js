@@ -456,7 +456,7 @@ dispatcher.prototype.playExit = function playExit() {
 	this.sendPixel(data);
 	
     this.VideoSlot.clear();
-	console.log(["play exit"]);
+	//console.log(["play exit"]);
     this.controller.style.display = 'none';
     this.collbackFunction(this.config);
 
