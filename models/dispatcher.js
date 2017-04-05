@@ -173,7 +173,7 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 	this.timerToCloseFn();
 	var dopAds=[];
     this.loadedCnt = config.ads.length;
-	if(this.config.hasOwnProperty("default")){
+	if(this.config.hasOwnProperty("default") && this.config.default){
 	this.loadedCnt++;
 	this.indexDefault[-3]={};
 	var dopAds=[{"id":-3,"src":this.config.default,"priority":"10","title":"Заглушка","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-3","id_source":"-3","prioritet":"0"}}];
