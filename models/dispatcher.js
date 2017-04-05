@@ -495,8 +495,10 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
     console.log([i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady]);
     if (noReady) return false;
     if (fin) {
+	if(cnt5){
 	data.event="cntall";
 	this.sendPixel(data);
+	}
 	var z;
 	for (z in this.indexDefault){
 	
