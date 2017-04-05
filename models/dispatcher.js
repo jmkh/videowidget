@@ -510,7 +510,7 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
 	}else{
     		
 	}
-
+   return;
     var preRemoteData = {
         key: this.GlobalMyGUITemp,
         fromUrl: encodeURIComponent(this.fromUrl),
@@ -532,10 +532,9 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
 dispatcher.prototype.sendStatistic = function sendStatistic(data) 
 {
   if(this.indexDefault.hasOwnProperty(data.id)){
-  
-  return;
+   return;
   }
- 
+  
   var m='';
   if (typeof data.eventName=='undefined'){
   return;
