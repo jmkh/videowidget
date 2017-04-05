@@ -41,7 +41,11 @@ window.colorTrailer = true;
 
 		 container.style.opacity=1;
 		 controller.style.display='block';
-
+		 window.colorPixels.playTvigle({callback:function(){
+		 console.log('вышел в лес');
+		 window.parent.postMessage({die:1},"*");
+		 }});
+         /*
 		 var yplayer= new YouTubePlayer({height:"100%",width:"100%",autoplay:true,container:"container"});
 		 //alert('This is CallBack!!!');
 		 //alert(yplayer);
@@ -57,7 +61,7 @@ window.colorTrailer = true;
 
 
 		 });
-
+         */
 	 }); 
      }});
     }

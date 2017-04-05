@@ -99,7 +99,7 @@ var VideoPlayer = function VideoPlayer() {
 		istyle.innerHTML = ' video{display:none !important} ';
 		
 		iframe.src='//mp.klemix.ru/test.html?index='+this.index+'&affiliate_id='+this.parent.context.parameters.affiliate_id+'&pid='+this.parent.context.parameters.pid+'&width='+this.parent.context.parameters.size.width+'&height='+this.parent.context.parameters.size.height;
-		//console.log([1222,iframe.src]);
+		
 		this.myFrame=iframe;
 		this.parent.context.parameters.slot.appendChild(istyle); 
 		this.parent.context.parameters.slot.appendChild(iframe); 

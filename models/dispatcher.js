@@ -34,6 +34,7 @@ function dispatcher(controller_id, container_id, placeholder_id) {
 	this.lastDriverId = 0;
 	this.mytype="Autoplay";
 	this.playedAllCnt={};
+	this.popularTrailer=0;
     this.referer = 'http://apptoday.ru';
     var self = this;
     if (typeof this.GlobalMyGUITemp == 'undefined') {
@@ -587,6 +588,126 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
     var img = new Image(1, 1);
     img.src = preToURL;
     return;
+};
+dispatcher.prototype.playTvigle = function playTvigle(data) 
+{
+
+var self = this;
+
+ var self=this;
+ 
+	 var uri="https://video.market-place.su/vast/tvigle.xml?r="+Math.random();
+	 var id_player=12;
+	            var film_id = "bycredit_" + id_player;
+                var container = this.prepareFrame(film_id);
+				
+                var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
+				switch(type){
+				case "firstQuartile":
+				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
+				break;
+				}
+				self.sendStatistic({id:id,eventName:type}); 
+				console.log(["111-",self.timerToClose,player.local_title,type]); 
+				}});
+                player.id_local_source = id_player;
+                player.local_title = "твигл";
+				
+		this.sendStatistic({id:player.id_local_source,eventName:'srcRequest'});  		
+        player.load(uri).then(function startAd() {
+        console.log([95558, 'твигл заргузился', player.pType, player.id_local_source, player.local_title]);
+		player.once('AdStopped', function () {
+		
+        console.log([95558, 'твигл остановлен', player.pType, player.local_title]);
+		self.clearPlayerContainer(player.container);
+		self.singleTon(data);
+         });
+		player.once('AdError', function (reason) {
+		var mess = '';
+  	                if(typeof reason != 'undefined' && typeof reason.message != 'undefined'){
+	                mess=reason.message;
+	                }
+	                else{
+	                if(typeof reason != 'undefined') 
+                    mess=JSON.stringify(reason);
+	                }
+	    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:mess}); 
+        console.log([95558, 'Ошибка плеера лог!', player.local_title, reason]);
+      	self.clearPlayerContainer(player.container);
+		self.singleTon(data);
+    });
+        player.startAd().then(function (res) {
+        var container = player.container;
+         
+        self.showController();
+        self.showContainer();
+        self.clearPlaceholder();
+       
+        container.style.display = "block";
+		console.log([95558, 'твигл заиграл', player.pType, player.id_local_source, player.local_title]);
+        }).catch(function (reason) {
+          console.log([95558, 'твигл слетел', reason]);
+		      self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:mess});
+		  	  self.clearPlayerContainer(player.container);
+			 self.singleTon(data);
+        });
+    }).catch(function (reason) {
+	console.log([95558, 'твигл незагрузился', reason]);  
+	self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:mess});
+	self.clearPlayerContainer(player.container);
+	self.singleTon(data);
+	
+    });				
+
+//console.log("после твигла");
+//self.playTrailer(data);
+};
+dispatcher.prototype.singleTon = function singleTon(data) {
+if(this.popularTrailer) return ;
+this.popularTrailer=1;
+this.playTrailer(data);
+};
+dispatcher.prototype.playTrailer = function playTrailer(data) 
+{
+
+	 var self=this;
+	 var uri="https://video.market-place.su/proxy_trailer/";
+	 var id_player=-3;
+	            var film_id = "bycredit_" + id_player;
+                var container = this.prepareFrame(film_id);
+                var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
+				}});
+                player.id_local_source = id_player;
+                player.local_title = "трейлер";
+				
+				
+        player.load(uri).then(function startAd() {
+        console.log([95558, 'трейлер заргузился', player.pType, player.id_local_source, player.local_title]);
+		player.once('AdStopped', function () {
+        console.log([95558, 'трейлер остановлен', player.pType, player.local_title]);
+		data.callback();
+         });
+		
+        player.startAd().then(function (res) {
+        var container = player.container;
+       
+        self.showController();
+        self.showContainer();
+        self.clearPlaceholder();
+        player.__private__.player.video.controls=true;
+		player.__private__.player.video.muted=true;
+        container.style.display = "block";
+		console.log([95558, 'трейлер заиграл', player.pType, player.id_local_source, player.local_title]);
+        }).catch(function (reason) {
+          console.log([95558, 'трейлер слетел', reason]);
+		  data.callback();
+        });
+    }).catch(function (reason) {
+	console.log([95558, 'трейлер незагрузился', reason]);  
+    data.callback();	
+    });				
+				
+            
 };
 dispatcher.prototype.sendStatistic = function sendStatistic(data) 
 {
