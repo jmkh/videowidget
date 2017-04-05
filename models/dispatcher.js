@@ -32,7 +32,8 @@ function dispatcher(controller_id, container_id, placeholder_id) {
 	this.cacheStatisticIndexes={};
 	this.cookieUserid=CookieDriver.getUserID();
 	this.lastDriverId = 0;
-	
+	this.mytype="Autoplay";
+	this.playedAllCnt={};
     this.referer = 'http://apptoday.ru';
     var self = this;
     if (typeof this.GlobalMyGUITemp == 'undefined') {
@@ -166,10 +167,27 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
         this.referer = config.referer;
     }
 	this.collbackFunction=collbackFunction;
-
-	//return;
-//config.ads=[{"id":29,"src":"https://match.ads.betweendigital.com/adv?s=1238716&maxd=100&mind=10&w=550&h=400&startdelay=0","priority":"2","title":"Битвин Mobile","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"1","id_source":"29","prioritet":"0"}},{"id":4,"src":"https://public.advarkads.com/vast?target_id=1&type_id=3&id=6294-1-1&referer…eo_id={rnd}&video_page_url=http%3A%2F%2Fapptoday.ru&autoplay=0&duration=30","priority":"1","title":"Advarks Mobile","created_at":"2017-01-10 17:22:04","updated_at":"2017-03-17 09:47:28","pivot":{"id_block":"1","id_source":"4","prioritet":"1"}}];
-    
+   	if(config.hasOwnProperty("type")){
+	
+	switch(config.type){
+	     case "1":
+            this.mytype="Autoplay";
+            break;
+        case "2":
+            this.mytype="Context";
+            break;
+        case "3":
+            this.mytype="Overlay";
+            break;
+        case "4":
+            this.mytype="VAST-Link";
+            break;
+        default:
+            this.mytype="Video";
+            break;
+	}
+	
+	}
 	this.timerToCloseFn();
 	var dopAds=[];
     this.loadedCnt = config.ads.length;
@@ -436,7 +454,22 @@ dispatcher.prototype.playQueue = function playQueue(queueCnt) {
     this.clearPlaceholder();
 };
 dispatcher.prototype.checkStatus = function checkStatus(data) {
+    var cnt5=0;
     if (this.queueToPlayExit) return true;
+	
+	switch(this.mytype){
+	case "Autoplay":
+	case "Overlay":
+	default:
+	var ztn;
+	
+	for (ztn in this.playedAllCnt){
+	cnt5++;
+	console.log(["плейед",ztn,this.cachedConf[ztn].title,this.cachedConf[data.id].title]);
+	}
+	break;
+	}
+	
 	this.checkSemaphores();
     var x;
     var i = 0;
@@ -454,16 +487,19 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
     data.status = [i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady];
 	if (i == this.loadedCnt &&  !noReady && !this.queueToPlaySemaphore && !this.queueToPLay.length) {
 	fin = 1;
-	data.fin="finish self";
+	data.fin="finish self "+cnt5;
+	
 	}
 	
     this.sendPixel(data);
     console.log([i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady]);
     if (noReady) return false;
     if (fin) {
+	data.event="cntall";
+	this.sendPixel(data);
 	var z;
 	for (z in this.indexDefault){
-	console.log(["деф",z,this.indexDefault[z]]);
+	
 	if(this.indexDefault[z]){
 	this.queueToPLay.push(this.indexDefault[z]);   
     this.playQueue();
@@ -506,11 +542,16 @@ dispatcher.prototype.sendTmp = function sendTmp(data) {
 };
 dispatcher.prototype.sendPixel = function sendPixel(data) {
 	if(this.config.isDesktop){ 
-	return; 
+	//return; 
 	}else{
     		
 	}
-   return;
+	if(data.event == "cntall"){
+	}else{
+	return;
+	}
+	
+   //return;
     var preRemoteData = {
         key: this.GlobalMyGUITemp,
         fromUrl: encodeURIComponent(this.fromUrl),
@@ -534,7 +575,7 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data)
   if(this.indexDefault.hasOwnProperty(data.id)){
    return;
   }
-  
+
   var m='';
   if (typeof data.eventName=='undefined'){
   return;
@@ -548,6 +589,9 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data)
  if (typeof this.cacheStatisticIndexes[data.id][data.eventName]!='undefined'){
   return;
  }
+   if(data.eventName =="filterPlayMedia"){
+    this.playedAllCnt[data.id]=1;  
+  }
   this.cacheStatisticIndexes[data.id][data.eventName]=1;
   
   var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.config.pid,affiliate_id:this.config.affiliate_id,cookie_id:this.cookieUserid,id_src:data.id,event:data.eventName,mess:m}; 
