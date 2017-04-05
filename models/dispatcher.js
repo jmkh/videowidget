@@ -209,7 +209,7 @@ dispatcher.prototype.prepareFrame = function prepareFrame(id) {
 };
 dispatcher.prototype.loadQueue = function loadQueue(object, player) {
     if (this.queueToPlayExit) return;
-    var self = this;
+	var self = this;
     var uri = object.src.replace(/\{([a-z]+)\}/g, function (match) {
         var fn = match.replace(/[\{\}]+/g, '');
         switch (fn) {
@@ -439,17 +439,18 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
     return false;
 };
 dispatcher.prototype.playExit = function playExit() {
+
     if (this.queueToPlayExit) return;
-	//this.collbackFunction(this.config);
-    this.queueToPlayExit = 1;
-	//this.lastDriverId 
-	var data={id:this.lastDriverId,event:"playExit"};
+	this.queueToPlayExit = 1;
+	this.VideoSlot.clear();
+	
+    var data={id:this.lastDriverId,event:"playExit"};
 	data.fin="";
     data.matrix = [];
     data.status = [];
 	this.sendPixel(data);
 	
-    this.VideoSlot.clear();
+    
     this.controller.style.display = 'none';
     this.collbackFunction(this.config);
 
