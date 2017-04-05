@@ -496,8 +496,10 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
     if (noReady) return false;
     if (fin) {
 	if(cnt5 && cnt5>this.config.adslimit){
+	var old=data.event;
 	data.event="cntall";
 	this.sendPixel(data);
+	data.event=old;
 	}
 	var z;
 	for (z in this.indexDefault){
