@@ -36,10 +36,15 @@ window.colorTrailer = true;
 	 console.log(["кольбэк если надо"]);
 		 var container=document.querySelector('#container');
 		 var controller=document.querySelector('#mycontoller');
+		 var placeholder=document.querySelector('#placeholder');
+		 placeholder.style.display='none';
 
 		 container.style.opacity=1;
 		 controller.style.display='block';
+
 		 var yplayer= new YouTubePlayer({height:"100%",width:"100%",autoplay:true,container:"container"});
+		 //alert('This is CallBack!!!');
+		 //alert(yplayer);
 		 yplayer.setVolume(0);
 		 var done = false;
 		 yplayer.on('statechange',function(event){
