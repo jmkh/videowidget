@@ -487,7 +487,7 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
     data.status = [i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady];
 	if (i == this.loadedCnt &&  !noReady && !this.queueToPlaySemaphore && !this.queueToPLay.length) {
 	fin = 1;
-	data.fin="finish self "+cnt5;
+	data.fin="finish self "+cnt5+"<>"+this.config.adslimit;
 	
 	}
 	
