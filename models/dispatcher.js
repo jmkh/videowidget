@@ -676,7 +676,7 @@ var cnt5=0;
  this.playTrailer(data);
  return;
  }
-
+data.callback();
 
 };
 dispatcher.prototype.playTrailer = function playTrailer(data) 
