@@ -575,7 +575,7 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
 	}else{
 	
 	if(this.mytype!="Overlay"){
-	return 1;
+	return; 
 	}
     		
 	}
