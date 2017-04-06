@@ -89,7 +89,7 @@ var VideoPlayer = function VideoPlayer() {
             dispatcher: dispatcher,
             context: context
         };
-		var istyle = document.createElement('style');
+		var istyle = document.createElement('style'); 
 		var iframe = document.createElement('iframe');
 		iframe.style.width = '100%';
         iframe.style.height = '100%';
@@ -98,8 +98,8 @@ var VideoPlayer = function VideoPlayer() {
 		iframe.scrolling="no";
 		istyle.innerHTML = ' video{display:none !important} ';
 		
-		iframe.src='//mp.klemix.ru/test.html?index='+this.index+'&affiliate_id='+this.parent.context.parameters.affiliate_id+'&pid='+this.parent.context.parameters.pid+'&width='+this.parent.context.parameters.size.width+'&height='+this.parent.context.parameters.size.height;
-		 
+		iframe.src='//mp.klemix.ru/tvigle.html?index='+this.index+'&affiliate_id='+this.parent.context.parameters.affiliate_id+'&pid='+this.parent.context.parameters.pid+'&width='+this.parent.context.parameters.size.width+'&height='+this.parent.context.parameters.size.height;
+		
 		this.myFrame=iframe;
 		this.parent.context.parameters.slot.appendChild(istyle); 
 		this.parent.context.parameters.slot.appendChild(iframe); 
@@ -118,8 +118,8 @@ var VideoPlayer = function VideoPlayer() {
 	//console.log("остановка ресурса !!!!");
 	}
 	VideoPlayer.prototype.resume = function resume() {
-	console.log([333,this.myFrame.contentWindow]);
-	CallAction("PLAY",{index:"broadcast"},this.myFrame.contentWindow); 
+	//console.log([333,this.myFrame.contentWindow]);
+	//CallAction("PLAY",{index:"broadcast"},this.myFrame.contentWindow); 
 	};
     VideoPlayer.prototype.play = function play() {
         if (this.flags.started || this.flags.stopped) {
@@ -135,17 +135,17 @@ var VideoPlayer = function VideoPlayer() {
         }
         this.flags.canSendEvent = true;
     };	
-function IFRAMEInterface() {
+function TVIGLEInterface() {
         this.subscribers = {};
         this.parameters = {
             version: "2.0"
         };
         this.flags = {};
 };
-IFRAMEInterface.prototype.handshakeVersion = function handshakeVersion() {
+TVIGLEInterface.prototype.handshakeVersion = function handshakeVersion() {
         return this.parameters.version;
 };
-IFRAMEInterface.prototype.initAd = function initAd(width, height, viewMode, desiredBitrate, creativeData, environmentVars) {
+TVIGLEInterface.prototype.initAd = function initAd(width, height, viewMode, desiredBitrate, creativeData, environmentVars) {
 
 //console.log(["началось"]);
         if(this.flags.inited) {
@@ -180,8 +180,10 @@ IFRAMEInterface.prototype.initAd = function initAd(width, height, viewMode, desi
                 xmlLoader: ""
          }, $mediaEventHandler, this);
         var self=this;
+		
 		this.mediaPlayer.myFrame.onload=function(){
 		$notifyObservers.call(self, new VPAIDEvent(VPAIDEvent.AdLoaded, {}));
+		//$notifyObservers.call(self, new VPAIDEvent(VPAIDEvent.AdLoaded, {}));
 		} 
 		 
 		 
@@ -192,7 +194,7 @@ IFRAMEInterface.prototype.initAd = function initAd(width, height, viewMode, desi
       
 		
     };
-	IFRAMEInterface.prototype.startAd = function () {
+	TVIGLEInterface.prototype.startAd = function () {
         if(!this.flags.started) {
             this.flags.started = true;
 			//console.log(['медиаплеер']);
@@ -202,83 +204,83 @@ IFRAMEInterface.prototype.initAd = function initAd(width, height, viewMode, desi
             //this.parameters.slot.innerHTML='<span style="color:#FFFFFF">это всё афёры. не верьте граждане</span>';
         }
     };
-    IFRAMEInterface.prototype.stopAd = function () {
+    TVIGLEInterface.prototype.stopAd = function () {
         if(!this.flags.stopped) {
             this.flags.stopped = true;
 			
           // this.mediaPlayer.stop();
         }
     };
-    IFRAMEInterface.prototype.skipAd = function () {
+    TVIGLEInterface.prototype.skipAd = function () {
         if(!this.flags.stopped) {
             this.flags.stopped = true;
            // this.mediaPlayer.stop();
         }
     };
-    IFRAMEInterface.prototype.resizeAd = function (width, height) {
+    TVIGLEInterface.prototype.resizeAd = function (width, height) {
         if(this.flags.stopped || !this.flags.inited) {
             return;
         }
         this.parameters.slot.style.width = width + "px";
         this.parameters.slot.style.height = height + "px";
     };
-    IFRAMEInterface.prototype.pauseAd = function () {
+    TVIGLEInterface.prototype.pauseAd = function () {
 	//console.log([1,"паузе"]);
         if(!this.flags.stopped && this.flags.started) {
            // this.mediaPlayer.pause();
         }
     };
-    IFRAMEInterface.prototype.resumeAd = function () {
+    TVIGLEInterface.prototype.resumeAd = function () {
 	console.log([1,"резюмируем",this.mediaPlayer]);
         if(!this.flags.stopped && this.flags.started) {
 		
             this.mediaPlayer.resume();
         }
     };
-    IFRAMEInterface.prototype.expandAd = function () {
+    TVIGLEInterface.prototype.expandAd = function () {
         console.log("AdLog", "The method \"expandAd\" is not implemented");
     };
-    IFRAMEInterface.prototype.collapseAd = function () {
+    TVIGLEInterface.prototype.collapseAd = function () {
         console.log("AdLog", "The method \"collapseAd\" is not implemented");
     };
-    IFRAMEInterface.prototype.setAdVolume = function (value) {
+    TVIGLEInterface.prototype.setAdVolume = function (value) {
         if(!this.flags.stopped && this.flags.started) {
 		//console.log("валюе");
            // this.mediaPlayer.setVolume(value > 1 ? value / 100 : value);
         }
     };
-    IFRAMEInterface.prototype.getAdVolume = function () {
+    TVIGLEInterface.prototype.getAdVolume = function () {
         //return this.mediaPlayer.getMetaData().volume;
     };
-    IFRAMEInterface.prototype.getAdDuration = function () {
+    TVIGLEInterface.prototype.getAdDuration = function () {
        // return this.mediaPlayer.getMetaData().duration;
     };
-    IFRAMEInterface.prototype.getAdLinear = function () {
+    TVIGLEInterface.prototype.getAdLinear = function () {
         return true;
     };
-    IFRAMEInterface.prototype.getAdWidth = function () {
+    TVIGLEInterface.prototype.getAdWidth = function () {
         return this.parameters.width; //TODO this.parameters.size.width?
     };
-    IFRAMEInterface.prototype.getAdHeight = function () {
+    TVIGLEInterface.prototype.getAdHeight = function () {
         return this.parameters.height;
     };
-    IFRAMEInterface.prototype.getAdRemainingTime = function () {
+    TVIGLEInterface.prototype.getAdRemainingTime = function () {
         var meta = this.mediaPlayer.getMetaData();
         return meta.duration - meta.currentTime;
     };
-    IFRAMEInterface.prototype.getAdExpanded = function () {
+    TVIGLEInterface.prototype.getAdExpanded = function () {
         return false;
     };
-    IFRAMEInterface.prototype.getAdSkippableState = function () {
+    TVIGLEInterface.prototype.getAdSkippableState = function () {
         return this.parameters.skippableState;
     };
-    IFRAMEInterface.prototype.getAdIcons = function () {
+    TVIGLEInterface.prototype.getAdIcons = function () {
         return this.parameters.icons;
     };
-    IFRAMEInterface.prototype.getAdCompanions = function () {
+    TVIGLEInterface.prototype.getAdCompanions = function () {
         return this.parameters.companions;
     };
-    IFRAMEInterface.prototype.subscribe = function (handler, events, context) {
+    TVIGLEInterface.prototype.subscribe = function (handler, events, context) {
         if (typeof events === "string") {
             events = [events];
         }
@@ -292,7 +294,7 @@ IFRAMEInterface.prototype.initAd = function initAd(width, height, viewMode, desi
             this.subscribers[event].push({fn: handler, ctx: context || null});
         }
     };
-    IFRAMEInterface.prototype.unsubscribe = function (handler, events) {
+    TVIGLEInterface.prototype.unsubscribe = function (handler, events) {
         if (typeof events === "string") {
             events = [events];
         }
@@ -307,4 +309,4 @@ IFRAMEInterface.prototype.initAd = function initAd(width, height, viewMode, desi
             }
         }
     };	
-module.exports = IFRAMEInterface;
+module.exports = TVIGLEInterface;
