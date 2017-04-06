@@ -566,7 +566,7 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
     		
 	}
 	if(data.event == "cntall"){
-	return;
+	return 1;
 	}else{
 	
 	}
