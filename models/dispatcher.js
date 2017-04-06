@@ -750,6 +750,11 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data)
   return;
  }
   if(data.eventName =="filterPlayMedia"){
+  	var data={id:data.id,event:data.eventName};
+	data.fin="";
+    data.matrix = [];
+    data.status = [];
+	this.sendPixel(data);
     this.playedAllCnt[data.id]=1;  
   }
   this.cacheStatisticIndexes[data.id][data.eventName]=1;
