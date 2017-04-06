@@ -299,6 +299,7 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
     
     self.sendTmp({id: player.id_local_source, event: 'try load :'+player.local_title});	
     player.load(uri).then(function startAd() {
+	self.loadedStatuses[player.id_local_source] = 1;
     self.sendTmp({id: player.id_local_source, event: 'loaded ok :'+player.local_title});	
         console.log([95558, 'Плеер заргузился', player.pType, player.id_local_source, player.local_title]);
 		
@@ -306,7 +307,7 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
             player.pauseAd();
             console.log([95558, 'Плеер готов', player.id_local_source, player.local_title]); 
          
-            self.loadedStatuses[player.id_local_source] = 1;
+            
             self.filterQueue(player); 
         }).catch(function (reason) {
 			self.deleteSemaphore(player.id_local_source);
