@@ -593,8 +593,18 @@ dispatcher.prototype.playTvigle = function playTvigle(data)
 {
 
 var self = this;
-
- var self=this;
+var in_to;
+var cnt5=0;
+ for (in_to in this.playedAllCnt){
+ if(in_to !=-3){
+ cnt5++;
+ console.log(["xp-1",in_to,cnt5]);
+ }
+ }
+ if(cnt5){
+ this.singleTon(data);
+ return;
+ }
  
 	 var uri="https://video.market-place.su/vast/tvigle.xml?r="+Math.random();
 	 var id_player=12;
@@ -728,7 +738,7 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data)
  if (typeof this.cacheStatisticIndexes[data.id][data.eventName]!='undefined'){
   return;
  }
-   if(data.eventName =="filterPlayMedia"){
+  if(data.eventName =="filterPlayMedia"){
     this.playedAllCnt[data.id]=1;  
   }
   this.cacheStatisticIndexes[data.id][data.eventName]=1;
