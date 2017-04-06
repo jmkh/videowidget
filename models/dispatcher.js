@@ -273,7 +273,7 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
     });
     player.once('AdError', function (reason) {
 		self.deleteSemaphore(player.id_local_source);
-	    self.sendTmp({id: player.id_local_source, event: 'on error :'+player.local_title});	
+	  
         
 		var mess = '';
   	                if(typeof reason != 'undefined' && typeof reason.message != 'undefined'){
@@ -283,6 +283,7 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
 	                if(typeof reason != 'undefined') 
                     mess=JSON.stringify(reason);
 	                }
+		 self.sendTmp({id: player.id_local_source, event: 'on error :'+mess});	
 	    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:mess}); 
         console.log([95558, 'Ошибка плеера лог!', player.local_title, reason]);
         self.loadedStatuses[player.id_local_source] = 2;
