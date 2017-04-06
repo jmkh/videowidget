@@ -286,7 +286,7 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
 	    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:mess}); 
         console.log([95558, 'Ошибка плеера лог!', player.local_title, reason]);
         self.loadedStatuses[player.id_local_source] = 2;
-        self.checkStatus({id: player.id_local_source, event: 'error : '+player.local_title});
+        self.checkStatus({id: player.id_local_source, event: 'error : '+mess}); 
 		self.clearPlayerContainer(player.container);
 		//this.container.style.display="none";
     });
