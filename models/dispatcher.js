@@ -573,8 +573,9 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
 	if(this.config.isDesktop){ 
 	return; 
 	}else{
+	
 	if(this.mytype!="Overlay"){
-	return;
+	return 1;
 	}
     		
 	}
