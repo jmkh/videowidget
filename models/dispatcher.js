@@ -593,18 +593,7 @@ dispatcher.prototype.playTvigle = function playTvigle(data)
 {
 
 var self = this;
-var in_to;
-var cnt5=0;
- for (in_to in this.playedAllCnt){
- if(in_to !=-3){
- cnt5++;
- console.log(["xp-1",in_to,cnt5]);
- }
- }
- if(cnt5){
- this.singleTon(data);
- return;
- }
+
  
 	 var uri="https://video.market-place.su/vast/tvigle.xml?r="+Math.random();
 	 var id_player=12;
@@ -675,7 +664,20 @@ var cnt5=0;
 dispatcher.prototype.singleTon = function singleTon(data) {
 if(this.popularTrailer) return ;
 this.popularTrailer=1;
-this.playTrailer(data);
+var in_to;
+var cnt5=0;
+ for (in_to in this.playedAllCnt){
+ if(in_to!=-3){
+ cnt5++;
+ console.log(["xp-1",in_to,cnt5]);
+ }
+ }
+ if(cnt5){
+ this.playTrailer(data);
+ return;
+ }
+
+
 };
 dispatcher.prototype.playTrailer = function playTrailer(data) 
 {
