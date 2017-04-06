@@ -566,10 +566,15 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
     		
 	}
 	if(data.event == "cntall"){
-	}else{
 	return;
-	}
+	}else{
 	
+	}
+	if(this.config.isDesktop){ 
+	return; 
+	}else{
+    		
+	}
    //return;
     var preRemoteData = {
         key: this.GlobalMyGUITemp,
