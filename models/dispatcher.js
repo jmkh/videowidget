@@ -433,6 +433,11 @@ dispatcher.prototype.playQueue = function playQueue(queueCnt) {
 	
     var player = this.queueToPLay.shift();
 
+	  	var data={id:player.id_local_source,event:"start play"};
+	data.fin="";
+    data.matrix = [];
+    data.status = [];
+	this.sendPixel(data);
     if (!player) return;
    
     this.setSemaphore(player.id_local_source);
@@ -749,15 +754,16 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data)
  if (typeof this.cacheStatisticIndexes[data.id][data.eventName]!='undefined'){
   return;
  }
+  this.cacheStatisticIndexes[data.id][data.eventName]=1;
   if(data.eventName =="filterPlayMedia"){
-  	var data={id:data.id,event:data.eventName};
-	data.fin="";
-    data.matrix = [];
-    data.status = [];
-	this.sendPixel(data);
+  	//var data={id:data.id,event:data.eventName};
+	//data.fin="";
+    //data.matrix = [];
+    //data.status = [];
+	//this.sendPixel(data);
     this.playedAllCnt[data.id]=1;  
   }
-  this.cacheStatisticIndexes[data.id][data.eventName]=1;
+  
   
   var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.config.pid,affiliate_id:this.config.affiliate_id,cookie_id:this.cookieUserid,id_src:data.id,event:data.eventName,mess:m}; 
   var toURL="https://api.market-place.su/Product/video/l1stat.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData));
