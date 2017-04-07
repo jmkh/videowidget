@@ -351,7 +351,7 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
     }
 	 yesReady=0;
 	if(!yesReady){
-	console.log(["otl 0 :",player.id_local_source]);
+	console.log(["otl-:",player.id_local_source]);
     this.indexMassive[player.id_local_source]=0; 
 	this.queueToPLay.push(player);
     this.playQueue();
@@ -495,8 +495,7 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	var yh;
 	for (yh in this.indexMassive) {
 	if(this.indexMassive[yh] != 0 ){
-	 //console.log(["otl:",yh]);
-	 //delayedIndex=1;
+	 console.log(["otl:",yh]);
 	 }
 	}
 	 
