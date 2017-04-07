@@ -205,7 +205,7 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 	}
 };
 dispatcher.prototype.initQueue = function initQueue(arrLinks) {
-    this.indexMassive={};
+    this.indexMassive={}; 
 	
 	var self=this;
     for (var i = 0, j = arrLinks.length; i < j; i++) {
@@ -350,7 +350,7 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
     }
 	 yesReady=0;
 	if(!yesReady){
-    this.indexMassive[player.id_local_source]=0;
+    this.indexMassive[player.id_local_source]=0; 
 	this.queueToPLay.push(player);
     this.playQueue();
 	}
