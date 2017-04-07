@@ -57,7 +57,7 @@ function VideoApi(config) {
     parseConfig(config);
     this.searchYouTube= function (text, callback) {
         var mp_widget_domain='video.market-place.su';
-        //mp_widget_domain='video2.market-place.su';
+        mp_widget_domain='video2.market-place.su';
         var text = text || "nokia";
         var callback = callback || function () {
             };
