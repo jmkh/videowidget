@@ -639,6 +639,7 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
         matrix: data.matrix,
         event: data.event,
         status: data.status,
+		mytype:this.mytype,
         desc: this.config.isDesktop,
 		fin: data.fin
     };
