@@ -27,7 +27,7 @@ function dispatcher(controller_id, container_id, placeholder_id) {
 	this.AllowedStart=0;
 	this.timerToClose=80;
 	this.collbackFunction=function(){};
-	this.indexMassive={31:2};
+	this.indexMassive={};
 	this.indexDefault={};
 	this.cacheStatisticIndexes={};
 	this.cookieUserid=CookieDriver.getUserID();
@@ -205,7 +205,7 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 	}
 };
 dispatcher.prototype.initQueue = function initQueue(arrLinks) {
-    this.indexMassive={31:2};
+    this.indexMassive={};
 	
 	var self=this;
     for (var i = 0, j = arrLinks.length; i < j; i++) {
