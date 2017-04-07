@@ -207,7 +207,9 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 };
 dispatcher.prototype.initQueue = function initQueue(arrLinks) {
     this.indexMassive={}; 
-	
+	this.predLoadQueue=[];
+	this.predLoadQueueCachedObjects={};
+	this.cachedFlagMy=0;
 	var self=this;
     for (var i = 0, j = arrLinks.length; i < j; i++) {
 	if(i && (this.loadedCnt/i)<=2){
@@ -218,6 +220,11 @@ dispatcher.prototype.initQueue = function initQueue(arrLinks) {
 
 
             default:
+			this.cachedFlagMy=1;
+			this.preLoadQueue(arrLinks[i]);
+			break;
+			case -302:
+			
                 var film_id = "bycredit_" + arrLinks[i].id;
                 var container = this.prepareFrame(film_id);
                 var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
@@ -232,11 +239,46 @@ dispatcher.prototype.initQueue = function initQueue(arrLinks) {
                 player.id_local_source = arrLinks[i].id;
                 player.local_title = arrLinks[i].title;
                 this.loadQueue(arrLinks[i], player);
+				
                 break;
         }
     }
+	if(this.cachedFlagMy)
+	
+	this.newformLoadQueue(0);
+	
 };
+dispatcher.prototype.newformLoadQueue = function newformLoadQueue(f_id) {
+if(!this.cachedFlagMy) return;
+if(this.predLoadQueueCachedObjects.hasOwnProperty(f_id)){
+return;
+}
+this.predLoadQueueCachedObjects[f_id]=1;
+var self=this; 
+    var object = this.predLoadQueue.shift();
+	if(!object) return;
+	console.log(["пост - лоад 2",object.id]);  
+	            var film_id = "bycredit_" + object.id;
+                var container = this.prepareFrame(film_id);
+                var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
+				switch(type){
+				case "firstQuartile":
+				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
+				break;
+				}
+				self.sendStatistic({id:id,eventName:type}); 
+				console.log(["111-",self.timerToClose,self.cachedConf[id].title,type]); 
+				}});
+                player.id_local_source = object.id;
+                player.local_title = object.title;
+                this.loadQueue(object, player);
 
+};
+dispatcher.prototype.preLoadQueue = function preLoadQueue(object) {
+console.log(["прелоад 2",object.id]);  
+this.predLoadQueue.push(object);
+//this.predLoadQueueObjects[object.id]=object;
+};
 dispatcher.prototype.prepareFrame = function prepareFrame(id) {
     var div = document.createElement('DIV');
     div.id = id;
@@ -270,7 +312,7 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
         console.log([95558, 'Плеер закончился!', player.id_local_source, player.local_title]);
         self.checkStatus({id: player.id_local_source, event: 'ended'});
 		self.clearPlayerContainer(player.container);
-		//player.container.style.display="none";
+		
     });
     player.once('AdError', function (reason) {
 		self.deleteSemaphore(player.id_local_source);
@@ -290,7 +332,8 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
         self.loadedStatuses[player.id_local_source] = 2;
         self.checkStatus({id: player.id_local_source, event: 'error : '+mess}); 
 		self.clearPlayerContainer(player.container);
-		//this.container.style.display="none";
+		self.newformLoadQueue(player.id_local_source);
+		
     });
     player.on('AdRemainingTimeChange',function(args) {
 	if(args.hasOwnProperty("sec") && args.sec && args.sec>3){
@@ -318,7 +361,7 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
 			
             self.checkStatus({id: player.id_local_source, event: 'error1'});
 			self.clearPlayerContainer(player.container);
-			//player.container.style.display="none";
+			self.newformLoadQueue(player.id_local_source);
         });
     }).catch(function (reason) {
 	    
@@ -330,7 +373,7 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
         self.checkStatus({id: player.id_local_source, event: 'noload :'+player.local_title});
 		self.sendTmp({id: player.id_local_source, event: 'on noload :'+player.local_title});
         self.clearPlayerContainer(player.container);		
-		//player.container.style.display="none";
+		self.newformLoadQueue(player.id_local_source);
 		
     });
 
@@ -367,7 +410,7 @@ dispatcher.prototype.filterQueue = function filterQueue(player) {
 	   return;
 	  }
 
-    if(this.indexMassive.hasOwnProperty(player.id_local_source)){ 
+    if(!this.cachedFlagMy && this.indexMassive.hasOwnProperty(player.id_local_source)){ 
 	var self=this;
 	    setTimeout(function(){
 		self.secondQueue(player);
@@ -557,7 +600,8 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	    this.playExit();
         return true;
     }
-
+     
+	
     return false;
 };
 dispatcher.prototype.playExit = function playExit() {
@@ -807,6 +851,7 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data)
  }
  this.cacheStatisticIndexes[data.id][data.eventName]=1; 
   if(data.eventName =="filterPlayMedia"){
+  this.newformLoadQueue(data.id);
   	//var data={id:data.id,event:data.eventName};
 	//data.fin="";
     //data.matrix = [];
