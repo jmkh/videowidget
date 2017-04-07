@@ -27,7 +27,7 @@ function dispatcher(controller_id, container_id, placeholder_id) {
 	this.AllowedStart=0;
 	this.timerToClose=80;
 	this.collbackFunction=function(){};
-	this.indexMassive={};
+	this.indexMassive={31:2};
 	this.indexDefault={};
 	this.cacheStatisticIndexes={};
 	this.cookieUserid=CookieDriver.getUserID();
@@ -205,7 +205,7 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 	}
 };
 dispatcher.prototype.initQueue = function initQueue(arrLinks) {
-    this.indexMassive={};
+    this.indexMassive={31:2};
 	
 	var self=this;
     for (var i = 0, j = arrLinks.length; i < j; i++) {
@@ -350,7 +350,7 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
     }
 	 yesReady=0;
 	if(!yesReady){
-    this.indexMassive[player.id_local_source]=1;
+    this.indexMassive[player.id_local_source]=0;
 	this.queueToPLay.push(player);
     this.playQueue();
 	}
@@ -488,10 +488,11 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	}
 	break;
 	}
+	console.log(["start checked status"]);
 	var delayedIndex=0;
 	var yh;
-	for (x in this.indexMassive) {
-	if(this.indexMassive[x] != 0){
+	for (yh in this.indexMassive) {
+	if(this.indexMassive[yh] != 0 ){
 	 delayedIndex=1;
 	 }
 	}
