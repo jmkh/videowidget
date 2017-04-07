@@ -495,8 +495,8 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	var yh;
 	for (yh in this.indexMassive) {
 	if(this.indexMassive[yh] != 0 ){
-	 console.log(["otl:",yh]);
-	 delayedIndex=1;
+	 //console.log(["otl:",yh]);
+	 //delayedIndex=1;
 	 }
 	}
 	 
