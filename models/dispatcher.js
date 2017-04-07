@@ -497,8 +497,9 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	var yh;
 	 this.playedJumpedTop[player.id_local_source]
 	for (yh in this.playedJumpedTop) {
+	console.log(["otl:",yh,this.playedJumpedTop[yh]);
 	if(this.playedJumpedTop[yh] != 0 ){
-	   console.log(["otl:",yh]);
+	   
 	   delayedIndex=1;
 	 }
 	}
