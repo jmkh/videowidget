@@ -351,7 +351,7 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
     }
 	 yesReady=0;
 	if(!yesReady){
-	console.log(["otl-:",player.id_local_source]);
+	console.log(["otl 0 :",player.id_local_source]);
     this.indexMassive[player.id_local_source]=0; 
 	this.queueToPLay.push(player);
     this.playQueue();
@@ -495,7 +495,8 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	var yh;
 	for (yh in this.indexMassive) {
 	if(this.indexMassive[yh] != 0 ){
-	 console.log(["otl:",yh]);
+	 //console.log(["otl:",yh]);
+	 //delayedIndex=1;
 	 }
 	}
 	 
@@ -596,9 +597,9 @@ dispatcher.prototype.sendOldPixel = function sendOldPixel(data)
  //var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.pid,affiliate_id:this.affiliate_id,id_src:data.id};
  var preToURL = "https://api.market-place.su/Product/video/l3quest.php?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
    //var preToURL="http://widget2.market-place.su/admin/statistic/video/put?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData)); 
-   console.log(["url",preToURL]);
- // var img = new Image(1,1);
-  //img.src =  preToURL; 
+   //console.log(["url",preToURL]);
+  var img = new Image(1,1);
+  img.src =  preToURL; 
   return;
 };
 dispatcher.prototype.sendPixel = function sendPixel(data) {
@@ -624,8 +625,9 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
 	}
 	*/ 
 	
-	this.sendOldPixel(data); 
-	
+	 if(data.event =="filterPlayMedia"){
+	 this.sendOldPixel(data); 
+	 }
 	return;
    //return;
     var preRemoteData = {
@@ -797,12 +799,13 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data)
  if (typeof this.cacheStatisticIndexes[data.id][data.eventName]!='undefined'){
   return;
  }
-  this.cacheStatisticIndexes[data.id][data.eventName]=1;
+ this.cacheStatisticIndexes[data.id][data.eventName]=1; 
   if(data.eventName =="filterPlayMedia"){
   	//var data={id:data.id,event:data.eventName};
 	//data.fin="";
     //data.matrix = [];
     //data.status = [];
+	data.event="filterPlayMedia";
 	this.sendPixel(data);
     this.playedAllCnt[data.id]=1;  
   }
