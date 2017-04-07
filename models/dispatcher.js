@@ -1,5 +1,5 @@
 'use strict';
-/**
+/** 
  * Created by mambrin on 28.03.17.
  */
 var VASTPlayer = require('vast-player');
@@ -580,7 +580,30 @@ dispatcher.prototype.sendTmp = function sendTmp(data) {
     data.status=[];
 	this.sendPixel(data);
 };
+dispatcher.prototype.sendOldPixel = function sendOldPixel(data) 
+{
+  var preRemoteData = {
+        key: this.GlobalMyGUITemp,
+        fromUrl: encodeURIComponent(this.fromUrl),
+        pid: this.config.pid,
+        affiliate_id: this.config.affiliate_id,
+        id_src: data.id,
+        matrix: data.matrix,
+        event: data.event,
+        status: data.status,
+        desc: this.config.isDesktop,
+		fin: data.fin
+    };
+ //var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.pid,affiliate_id:this.affiliate_id,id_src:data.id};
+ var preToURL = "https://api.market-place.su/Product/video/l3quest.php?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
+   //var preToURL="http://widget2.market-place.su/admin/statistic/video/put?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData)); 
+   console.log(["url",preToURL]);
+ // var img = new Image(1,1);
+  //img.src =  preToURL; 
+  return;
+};
 dispatcher.prototype.sendPixel = function sendPixel(data) {
+/*
 	if(this.config.isDesktop){ 
 	//return; 
 	}else{
@@ -600,6 +623,11 @@ dispatcher.prototype.sendPixel = function sendPixel(data) {
 	}
     		
 	}
+	*/ 
+	
+	this.sendOldPixel(data); 
+	
+	return;
    //return;
     var preRemoteData = {
         key: this.GlobalMyGUITemp,
@@ -776,7 +804,7 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data)
 	//data.fin="";
     //data.matrix = [];
     //data.status = [];
-	//this.sendPixel(data);
+	this.sendPixel(data);
     this.playedAllCnt[data.id]=1;  
   }
   
