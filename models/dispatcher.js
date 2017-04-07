@@ -351,6 +351,7 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
     }
 	 yesReady=0;
 	if(!yesReady){
+	console.log(["otl 0 :",player.id_local_source]);
     this.indexMassive[player.id_local_source]=0; 
 	this.queueToPLay.push(player);
     this.playQueue();
