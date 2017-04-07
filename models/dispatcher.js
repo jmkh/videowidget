@@ -339,10 +339,11 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
     console.log(['id_player отложен', this.cachedConf[player.id_local_source].title]);
     var x;
     var i = 0;
-    var yesReady = 0;
+    var yesReady  = 0;
 	var fin = 0;
     for (x in this.loadedStatuses) {
         if (x != player.id_local_source && this.loadedStatuses[x]==1) {
+		
 		  yesReady=1;
         }
         i++;
@@ -493,6 +494,7 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	var yh;
 	for (yh in this.indexMassive) {
 	if(this.indexMassive[yh] != 0 ){
+	 console.log(["otl:",yh]);
 	 delayedIndex=1;
 	 }
 	}
