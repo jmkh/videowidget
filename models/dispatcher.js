@@ -590,6 +590,7 @@ dispatcher.prototype.sendOldPixel = function sendOldPixel(data)
         id_src: data.id,
         matrix: data.matrix,
         event: data.event,
+		mytype:this.mytype, 
         status: data.status,
         desc: this.config.isDesktop,
 		fin: data.fin
