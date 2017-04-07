@@ -34,6 +34,7 @@ function dispatcher(controller_id, container_id, placeholder_id) {
 	this.lastDriverId = 0;
 	this.mytype="Autoplay";
 	this.playedAllCnt={};
+	this.playedJumpedTop={};
 	this.popularTrailer=0;
     this.referer = 'http://apptoday.ru';
     var self = this;
@@ -352,7 +353,7 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
 	 yesReady=0;
 	if(!yesReady){
 	console.log(["otl 0 :",player.id_local_source]);
-    this.indexMassive[player.id_local_source]=0; 
+    this.playedJumpedTop[player.id_local_source]=0;
 	this.queueToPLay.push(player);
     this.playQueue();
 	}
@@ -360,6 +361,7 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
 dispatcher.prototype.filterQueue = function filterQueue(player) {
    
      if(this.indexDefault.hasOwnProperty(player.id_local_source)){
+	   this.playedJumpedTop[player.id_local_source]=1;
 	   this.indexDefault[player.id_local_source]=player;
 	   this.checkStatus({id: player.id_local_source, event: 'def 1 :'+player.local_title});
 	   return;
@@ -493,10 +495,11 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	console.log(["start checked status"]);
 	var delayedIndex=0;
 	var yh;
-	for (yh in this.indexMassive) {
-	if(this.indexMassive[yh] != 0 ){
-	 //console.log(["otl:",yh]);
-	 //delayedIndex=1;
+	 this.playedJumpedTop[player.id_local_source]
+	for (yh in this.playedJumpedTop) {
+	if(this.playedJumpedTop[yh] != 0 ){
+	   console.log(["otl:",yh]);
+	   delayedIndex=1;
 	 }
 	}
 	 
