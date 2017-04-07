@@ -350,6 +350,7 @@ dispatcher.prototype.secondQueue = function secondQueue(player) {
     }
 	 yesReady=0;
 	if(!yesReady){
+    this.indexMassive[player.id_local_source]=1;
 	this.queueToPLay.push(player);
     this.playQueue();
 	}
@@ -362,11 +363,11 @@ dispatcher.prototype.filterQueue = function filterQueue(player) {
 	   return;
 	  }
 
-    if(1==1 && this.indexMassive.hasOwnProperty(player.id_local_source)){ 
+    if(this.indexMassive.hasOwnProperty(player.id_local_source)){ 
 	var self=this;
 	    setTimeout(function(){
 		self.secondQueue(player);
-		}, 1000);
+		}, 1500);
 		return;
 	}
     this.queueToPLay.push(player);   
@@ -445,9 +446,6 @@ dispatcher.prototype.playQueue = function playQueue(queueCnt) {
     this.setSemaphore(player.id_local_source);
     this.playedCnt++;
 	
-   console.log([95558,'cont',player]);
-	
-	
     var container = player.container;
     console.log([95558, 'Плеер на паузе', player.pType, player.local_title]);
     this.showController();
@@ -490,6 +488,15 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	}
 	break;
 	}
+	var delayedIndex=0;
+	var yh;
+	for (x in this.indexMassive) {
+	if(this.indexMassive[x] != 0){
+	 delayedIndex=1;
+	 }
+	}
+	 
+	
 	
 	this.checkSemaphores();
     var x;
@@ -506,16 +513,19 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	data.fin="";
     data.matrix = this.loadedStatuses;
     data.status = [i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady];
-	if (i == this.loadedCnt &&  !noReady && !this.queueToPlaySemaphore && !this.queueToPLay.length) {
+	if (i == this.loadedCnt &&  !noReady && !this.queueToPlaySemaphore && !this.queueToPLay.length && !delayedIndex) {
 	fin = 1;
-	data.fin="finish self "+cnt5+"<>"+this.config.adslimit;
+	
 	
 	}
 	
-    this.sendPixel(data);
-    console.log([i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady]);
-    if (noReady) fin=0;
-	
+    
+    console.log([i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady,delayedIndex]);
+    //if (noReady) fin=0;
+	//if(delayedIndex) fin=0;
+	if(fin)
+	data.fin="finish self "+cnt5+"<>"+this.config.adslimit;
+	this.sendPixel(data);
     if (fin) {
 	if(cnt5 && cnt5>this.config.adslimit){
 	var old=data.event;
