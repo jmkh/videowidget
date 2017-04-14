@@ -33,6 +33,7 @@ window.colorTrailer = true;
             window.colorPixels.AllowedStart=1;
         }, 10000);
 	 window.colorPixels.setConfig(config,function(){
+	 return;
 	 console.log(["кольбэк если надо"]);
 		 var container=document.querySelector('#container');
 		 var controller=document.querySelector('#mycontoller');

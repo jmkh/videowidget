@@ -161,7 +161,19 @@ dispatcher.prototype.clearExtraSlot = function clearExtraSlot() {
 dispatcher.prototype.showExtraSlot = function showExtraSlot() {
     this.extraslot.style.display = "block";
 };
+dispatcher.prototype.prepareFrame = function prepareFrame(id) {
+    var div = document.createElement('DIV');
+    div.id = id;
+    div.style.display = "none";
+    div.style.width = "100%";
+    div.style.height = "100%";
+
+    this.container.appendChild(div);
+    return div;
+};
 dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
+	//config.ads=[{"id":20,"src":"http://ads.adfox.ru/252227/getCodeTest?p1=bvuqj&p2=fliy&pfc=bixdw&pfb=egbtg&fmt=1&pr=198578643&tags=inpage","priority":"215","title":"Test linear vast","created_at":"2017-04-13 12:02:11","updated_at":"2017-04-13 12:02:21","pivot":{"id_block":"21","id_source":"20","prioritet":"0"}},{"id":21,"src":"http://ads.adfox.ru/252227/getCode?p1=bvuqj&p2=fliy&pfc=bixdw&pfb=egbtg&fmt=1&pr=198578643&tags=inpage","priority":"216","title":"Test","created_at":"2017-04-13 12:12:24","updated_at":"2017-04-13 12:12:24","pivot":{"id_block":"21","id_source":"21","prioritet":"1"}},{"id":15,"src":"http://am15.net/video.php?type=direct&s=72097&show=preroll","priority":"2","title":"Advmaker Adult direct","created_at":"2017-04-11 12:14:33","updated_at":"2017-04-11 12:15:02","pivot":{"id_block":"21","id_source":"15","prioritet":"2"}}]
+
     if (!config.hasOwnProperty('adslimit'))
         config.adslimit = 3;
     this.config = config;
@@ -191,40 +203,68 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 	
 	}
 	this.timerToCloseFn();
+	if(this.config.hasOwnProperty("default") && this.config.default){
+	//config.ads=[];
+	//config.ads.push({"id":-3,"src":this.config.default,"priority":"10","title":"Заглушка","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-3","id_source":"-3","prioritet":"0"}});	
+	}
+	
+	this.restartQueue();
+	this.loadedCnt = config.ads.length;
+	//this.initQueue(config.ads);
+	this.startQueue(config.ads); 
+	return;
+	/*
 	var dopAds=[];
-    this.loadedCnt = config.ads.length;
+	
+   
+	
 	if(this.config.hasOwnProperty("default") && this.config.default){
 	this.loadedCnt++;
-	this.indexDefault[-3]={};
+	//this.indexDefault[-3]={};
 	var dopAds=[{"id":-3,"src":this.config.default,"priority":"10","title":"Заглушка","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-3","id_source":"-3","prioritet":"0"}}];
+	config.ads.push({"id":-3,"src":this.config.default,"priority":"10","title":"Заглушка","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-3","id_source":"-3","prioritet":"0"}})
 	}
+	
 	this.initQueue(config.ads);
 	
 	
-	if(dopAds.length>0){
-    this.initQueue(dopAds);
-	}
+	//if(dopAds.length>0){
+    //this.initQueue(dopAds);
+	//}
+	*/
+};
+dispatcher.prototype.restartQueue = function restartQueue(arrLinks) {
+this.indexMassive={};
+this.predLoadQueue=[];
+this.queueToPlayExit=0; 
+this.cachedFlagMy=0;
+this.loadedCnt=0;
+this.predLoadQueueCachedObjects={};
+this.loadedStatuses={};
+this.queueToPLay=[];
+this.queueSemaphores={};
 };
 dispatcher.prototype.initQueue = function initQueue(arrLinks) {
-    this.indexMassive={}; 
-	this.predLoadQueue=[];
-	this.predLoadQueueCachedObjects={};
-	this.cachedFlagMy=0;
+if (this.queueToPlayExit) return;
+this.cachedFlagMy=1;
 	var self=this;
     for (var i = 0, j = arrLinks.length; i < j; i++) {
 	if(i && (this.loadedCnt/i)<=2){
 	     this.indexMassive[arrLinks[i].id]=2;
 	     }
-        this.cachedConf[arrLinks[i].id] = {title: arrLinks[i].title};
-        switch (arrLinks[i].id) {
-
-
-            default:
-			this.cachedFlagMy=1;
-			this.preLoadQueue(arrLinks[i]);
-			break;
-			case -302:
-			
+         	this.predLoadQueue.push(arrLinks[i]);
+         }
+         this.formLoadQueue(0);
+};
+dispatcher.prototype.startQueue = function startQueue(arrLinks) {
+if (this.queueToPlayExit) return;
+this.cachedFlagMy=1;
+	var self=this;
+    for (var i = 0, j = arrLinks.length; i < j; i++) {
+	if(i && (this.loadedCnt/i)<=2){
+	     this.indexMassive[arrLinks[i].id]=2;
+	     }
+        
                 var film_id = "bycredit_" + arrLinks[i].id;
                 var container = this.prepareFrame(film_id);
                 var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
@@ -234,21 +274,145 @@ dispatcher.prototype.initQueue = function initQueue(arrLinks) {
 				break;
 				}
 				self.sendStatistic({id:id,eventName:type}); 
-				console.log(["111-",self.timerToClose,self.cachedConf[id].title,type]); 
 				}});
                 player.id_local_source = arrLinks[i].id;
                 player.local_title = arrLinks[i].title;
-                this.loadQueue(arrLinks[i], player);
-				
+				player.local_src = arrLinks[i].src;
+                this.loadQueue(player);       	
+
+        
+    }
+
+};
+dispatcher.prototype.formLoadQueue = function formLoadQueue(f_id) {
+if(!this.cachedFlagMy) return;
+if(this.predLoadQueueCachedObjects.hasOwnProperty(f_id)){
+return;
+}
+this.predLoadQueueCachedObjects[f_id]=1;
+    var self=this; 
+    var object = this.predLoadQueue.shift();
+	
+	if(!object) return;
+	            var film_id = "bycredit_" + object.id;
+                var container = this.prepareFrame(film_id);
+                var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
+				switch(type){
+				case "firstQuartile":
+				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
+				break;
+				}
+				self.sendStatistic({id:id,eventName:type}); 
+				}});
+                player.id_local_source = object.id;
+                player.local_title = object.title;
+				player.local_src = object.src;
+                this.loadQueue(player);
+};
+dispatcher.prototype.dispatchQueue = function dispatchQueue(id,data) {
+document.getElementById("ilias_id").innerHTML+='<br>'+data.message;
+};
+dispatcher.prototype.loadQueue = function loadQueue(player) {
+ if (this.queueToPlayExit) return;
+	var self = this;
+    var uri = player.local_src.replace(/\{([a-z]+)\}/g, function (match) {
+        var fn = match.replace(/[\{\}]+/g, '');
+        switch (fn) {
+            case "rnd":
+                return Math.random();
+                break
+            case "ref":
+                return encodeURIComponent(self.referer);
                 break;
         }
+        return match;
+    });
+	//alert(uri);
+    this.loadedStatuses[player.id_local_source] = 0;
+	this.sendStatistic({id:player.id_local_source,eventName:'srcRequest'});  
+	player.load(uri).then(function startAd() {
+	
+	self.loadedStatuses[player.id_local_source] = 1;
+	
+	document.getElementById("ilias_id").innerHTML+='<br>готов 1'+player.local_title;
+	//alert('готов 1'+player.local_title);
+	//self.dispatchQueue(player.id_local_source,{message:'играет '+player.local_title});
+	player.startAd().then(function (res) {
+	document.getElementById("ilias_id").innerHTML+='<br>готов 2'+player.local_title;
+	     player.pauseAd();
+         self.filterQueue(player); 
+        }).catch(function (reason) {
+		self.loadedStatuses[player.id_local_source] = 2;
+		self.deleteSemaphore(player.id_local_source);
+		self.dispatchQueue(player.id_local_source,{message:'не играет '+player.local_title+JSON.stringify(reason)});
+	    });
+	}).catch(function(reason){
+	//alert('не готов 1 '+player.local_title);
+	self.loadedStatuses[player.id_local_source] = 2;
+	self.deleteSemaphore(player.id_local_source);
+	self.dispatchQueue(player.id_local_source,{message:'ошибка '+player.local_title+JSON.stringify(reason)});
+	
+	});
+	
+};
+dispatcher.prototype.filterQueue = function filterQueue(player) {
+    if (this.queueToPlayExit) return;
+
+    this.queueToPLay.push(player);   
+    this.playQueue();
+};
+dispatcher.prototype.playQueue = function playQueue() {
+    if (this.queueToPlayExit) return;
+    var self = this;
+    if (this.checkSemaphores()) {
+        setTimeout(function () {
+            self.playQueue();
+        }, 500);
+        return;
+
     }
+   var player = this.queueToPLay.shift();
+   if (!player) return;	
+   this.setSemaphore(player.id_local_source);
+    var container = player.container;
+    this.showController();
+    this.showContainer();
+    this.clearPlaceholder();
+    this.VideoSlot.init(player);
+    container.style.display = "block";
+	player.resolveAd();
+	//alert(container.innerHTML);
+   // alert(player.local_title+' игрок');	
+   
+	
+};
+dispatcher.prototype.checkSemaphores = function checkSemaphores() {
+var x;
+for(x in this.queueSemaphores){
+if(this.queueSemaphores[x])
+return true;
+}
+return false;
+};
+dispatcher.prototype.deleteSemaphore = function deleteSemaphore(id) {
+    this.queueSemaphores[id]=0;
+};
+dispatcher.prototype.setSemaphore = function setSemaphore(id) {
+    this.queueSemaphores[id]=1;
+};
+
+
+/*
+dispatcher.prototype.initQueue = function initQueue(arrLinks) {
+    
+
 	if(this.cachedFlagMy)
 	
 	this.newformLoadQueue(0);
 	
 };
 dispatcher.prototype.newformLoadQueue = function newformLoadQueue(f_id) {
+if (this.queueToPlayExit) return;
 if(!this.cachedFlagMy) return;
 if(this.predLoadQueueCachedObjects.hasOwnProperty(f_id)){
 return;
@@ -257,7 +421,7 @@ this.predLoadQueueCachedObjects[f_id]=1;
 var self=this; 
     var object = this.predLoadQueue.shift();
 	if(!object) return;
-	console.log(["пост - лоад 2",object.id]);  
+	//console.log(["пост - лоад 2",object.id]);  
 	            var film_id = "bycredit_" + object.id;
                 var container = this.prepareFrame(film_id);
                 var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
@@ -275,7 +439,7 @@ var self=this;
 
 };
 dispatcher.prototype.preLoadQueue = function preLoadQueue(object) {
-console.log(["прелоад 2",object.id]);  
+//console.log(["прелоад 2",object.id]);  
 this.predLoadQueue.push(object);
 //this.predLoadQueueObjects[object.id]=object;
 };
@@ -429,7 +593,9 @@ dispatcher.prototype.setSemaphore = function setSemaphore(id) {
     this.queueSemaphores[id]=1;
 };
 dispatcher.prototype.deleteSemaphore = function deleteSemaphore(id) {
-
+console.log('clear '+id);
+if(this.playedJumpedTop.hasOwnProperty(id))
+this.playedJumpedTop[id]=0;
 if(this.queueSemaphores.hasOwnProperty(id)){
 	var data={id:id,event:"delete|"+id+'|'+this.queueSemaphores.hasOwnProperty(id)+'|'+JSON.stringify(this.queueSemaphores)};
 	data.fin="";
@@ -442,6 +608,8 @@ if(this.queueSemaphores.hasOwnProperty(id)){
     data.status = [];
 	this.sendPixel(data);
 delete this.queueSemaphores[id];
+
+
 	var data={id:id,event:"delete|"+id+'|'+this.queueSemaphores.hasOwnProperty(id)+'|'+JSON.stringify(this.queueSemaphores)};
 	data.fin="";
     data.matrix = [];
@@ -652,28 +820,6 @@ dispatcher.prototype.sendOldPixel = function sendOldPixel(data)
   return;
 };
 dispatcher.prototype.sendPixel = function sendPixel(data) {
-/*
-	if(this.config.isDesktop){ 
-	//return; 
-	}else{
-    		
-	}
-	if(data.event == "cntall"){
-	return 1;
-	}else{
-	
-	}
-	if(this.config.isDesktop){ 
-	return; 
-	}else{
-	
-	if(this.mytype!="Overlay"){
-	return; 
-	}
-    		
-	}
-	*/ 
-	
 	 if(data.event =="filterPlayMedia"){
 	 this.sendOldPixel(data); 
 	 }
@@ -830,8 +976,11 @@ dispatcher.prototype.playTrailer = function playTrailer(data)
 				
             
 };
+
+*/
 dispatcher.prototype.sendStatistic = function sendStatistic(data) 
 {
+return;
   if(this.indexDefault.hasOwnProperty(data.id)){
    return;
   }
@@ -849,23 +998,13 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data)
  if (typeof this.cacheStatisticIndexes[data.id][data.eventName]!='undefined'){
   return;
  }
- this.cacheStatisticIndexes[data.id][data.eventName]=1; 
-  if(data.eventName =="filterPlayMedia"){
-  this.newformLoadQueue(data.id);
-  	//var data={id:data.id,event:data.eventName};
-	//data.fin="";
-    //data.matrix = [];
-    //data.status = [];
-	data.event="filterPlayMedia";
-	this.sendPixel(data);
-    this.playedAllCnt[data.id]=1;  
-  }
-  
-  
+  this.cacheStatisticIndexes[data.id][data.eventName]=1; 
   var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.config.pid,affiliate_id:this.config.affiliate_id,cookie_id:this.cookieUserid,id_src:data.id,event:data.eventName,mess:m}; 
   var toURL="https://api.market-place.su/Product/video/l1stat.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData));
-    var img = new Image(1,1);
-    img.src = toURL; 
+  console.log([95558,'statistic',preRemoteData]);
+    //var img = new Image(1,1);
+   // img.src = toURL; 
    
 };
+
 module.exports = dispatcher; 
