@@ -1,0 +1,18 @@
+<html><head><meta name="viewport" content="width=device-width; height=device-height;"><title>Click</title><link rel="stylesheet" href="resource://gre/res/TopLevelVideoDocument.css"><link rel="stylesheet" href="chrome://global/skin/media/TopLevelVideoDocument.css"><script type="text/javascript;version=1.8" src="chrome://global/content/TopLevelVideoDocument.js"></script></head><body>
+<video id="video" controls autoplay mute height="240" width="360">
+<source src="https://storage.mds.yandex.net/get-video-ya-adfox/51737/15987efa28d/4159f3a00dd2491b/682-678-480p.mp4?redirect=yes&sign=6bc09c833f0504dc1f3b18b357f7c7abc1287a8b74ca3481f6c0201699427c75&ts=6b40bb99">
+</video>
+<script>
+
+var video = document.getElementById('video');
+  video.addEventListener('click',function(){
+  alert(3);
+  video.play();
+},false);
+
+var theEvent = document.createEvent("MouseEvent");
+    theEvent.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    video.dispatchEvent(theEvent); 
+</script>
+</body></html>
+

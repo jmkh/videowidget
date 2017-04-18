@@ -41,6 +41,7 @@ var VideoPlayer = function VideoPlayer() {
 		this.index=this.bridge.index;
 		this.bridge.addAction("adEvent",function(data){
 		if(data.hasOwnProperty("eventName")){
+		console.log([955581,'твигл + ',data.eventName])
 		switch (data.eventName){
 		case "firstQuartile":
 		self.playedCnt++;

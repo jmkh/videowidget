@@ -45,6 +45,7 @@ window.colorTrailer = true;
 		//c_data={pid:"20",affiliate_id:"56015401b3da9",h1:"IPHONE 7"}; 
 	}
 	
+	/*
 	 var bridge=new Bridge(c_data.index);
 	 bridge.addAction("execute",function(data){
 	 
@@ -61,7 +62,7 @@ window.colorTrailer = true;
    
 
      });
-
+    */
 	}catch(e){
 	console.log(e.message);
 	}finally {

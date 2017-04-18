@@ -42,7 +42,9 @@ function Bridge(index){
     };
 
     this.execAction=function(name,data){
+	
         var action=actions[name]||actions['default']||function(){};
+		//alert(name+' / '+action);
         action.call(this,data);
     };
 

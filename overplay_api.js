@@ -1,4 +1,3 @@
-
 (function () {
     function async_load(config) {
         if (typeof window.MyMpOverlayWidgetsV == 'undefined') {
@@ -13,15 +12,13 @@
             //return true;
         }
         try {
-            var psrc="//www.apptoday.ru/autogit/autostop/build/overlay.js";
-            var psrc="//mp.klemix.ru/autogit/autostop/build/overlay.js";
-            var s=document.createElement("script");
+		var psrc="//dev.apptoday.ru/autogit/android/build/overlay.js";
+		    var s=document.createElement("script");
             s.src=psrc;
             document.body.appendChild(s);
-            s.onload=function(){
+			s.onload=function(){
                 var overplay=new  MpOverPlayLib(config);
-            };
-
+			};
         } catch (e) {
             console.log(e.message);
         } finally {

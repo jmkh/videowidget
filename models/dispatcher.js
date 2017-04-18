@@ -21,7 +21,8 @@ function dispatcher(controller_id, container_id, placeholder_id) {
     this.loadedStatuses = {};
     this.cachedConf = {};
     this.loadedCnt = 0;
-    this.playedCnt = 0;
+    this.playedCnt = 0
+	this.playedRoliks = {};
     this.config = {};
     this.links = [];
 	this.AllowedStart=0;
@@ -167,15 +168,17 @@ dispatcher.prototype.prepareFrame = function prepareFrame(id) {
     div.style.display = "none";
     div.style.width = "100%";
     div.style.height = "100%";
-
+      
     this.container.appendChild(div);
     return div;
 };
 dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 	//config.ads=[{"id":20,"src":"http://ads.adfox.ru/252227/getCodeTest?p1=bvuqj&p2=fliy&pfc=bixdw&pfb=egbtg&fmt=1&pr=198578643&tags=inpage","priority":"215","title":"Test linear vast","created_at":"2017-04-13 12:02:11","updated_at":"2017-04-13 12:02:21","pivot":{"id_block":"21","id_source":"20","prioritet":"0"}},{"id":21,"src":"http://ads.adfox.ru/252227/getCode?p1=bvuqj&p2=fliy&pfc=bixdw&pfb=egbtg&fmt=1&pr=198578643&tags=inpage","priority":"216","title":"Test","created_at":"2017-04-13 12:12:24","updated_at":"2017-04-13 12:12:24","pivot":{"id_block":"21","id_source":"21","prioritet":"1"}},{"id":15,"src":"http://am15.net/video.php?type=direct&s=72097&show=preroll","priority":"2","title":"Advmaker Adult direct","created_at":"2017-04-11 12:14:33","updated_at":"2017-04-11 12:15:02","pivot":{"id_block":"21","id_source":"15","prioritet":"2"}}]
+	//config.ads=[{"id":20,"src":"https://widget.market-place.su/testvast.xml","priority":"215","title":"Test linear vast","created_at":"2017-04-13 12:02:11","updated_at":"2017-04-13 12:02:21","pivot":{"id_block":"21","id_source":"20","prioritet":"0"}},{"id":21,"src":"http://ads.adfox.ru/252227/getCode?p1=bvuqj&p2=fliy&pfc=bixdw&pfb=egbtg&fmt=1&pr=198578643&tags=inpage","priority":"216","title":"Test","created_at":"2017-04-13 12:12:24","updated_at":"2017-04-13 12:12:24","pivot":{"id_block":"21","id_source":"21","prioritet":"1"}},{"id":2001,"src":"https://widget.market-place.su/testvast.xml","priority":"215","title":"test2","created_at":"2017-04-13 12:02:11","updated_at":"2017-04-13 12:02:21","pivot":{"id_block":"21","id_source":"2001","prioritet":"0"}},{"id":2002,"src":"http://am15.net/video.php?type=direct&s=72097&show=preroll","priority":"215","title":"test3","created_at":"2017-04-13 12:02:11","updated_at":"2017-04-13 12:02:21","pivot":{"id_block":"21","id_source":"2001","prioritet":"0"}}];
 
+	 //config.adslimit = 1; 
     if (!config.hasOwnProperty('adslimit'))
-        config.adslimit = 3;
+        config.adslimit = 2;
     this.config = config;
     if (config.hasOwnProperty('referer') && config.referer) {
         this.referer = config.referer;
@@ -210,8 +213,8 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 	
 	this.restartQueue();
 	this.loadedCnt = config.ads.length;
-	//this.initQueue(config.ads);
-	this.startQueue(config.ads); 
+	this.initQueue(config.ads);
+	//this.startQueue(config.ads); 
 	return;
 	/*
 	var dopAds=[];
@@ -252,13 +255,17 @@ this.cachedFlagMy=1;
 	if(i && (this.loadedCnt/i)<=2){
 	     this.indexMassive[arrLinks[i].id]=2;
 	     }
+		     if(arrLinks[i].pivot.id_block==20){
+			 this.popularTrailer=6;
+			 }
          	this.predLoadQueue.push(arrLinks[i]);
          }
          this.formLoadQueue(0);
 };
 dispatcher.prototype.startQueue = function startQueue(arrLinks) {
+
 if (this.queueToPlayExit) return;
-this.cachedFlagMy=1;
+this.cachedFlagMy=0;
 	var self=this;
     for (var i = 0, j = arrLinks.length; i < j; i++) {
 	if(i && (this.loadedCnt/i)<=2){
@@ -270,6 +277,7 @@ this.cachedFlagMy=1;
                 var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
 				switch(type){
 				case "firstQuartile":
+				
 				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
 				break;
 				}
@@ -278,17 +286,36 @@ this.cachedFlagMy=1;
                 player.id_local_source = arrLinks[i].id;
                 player.local_title = arrLinks[i].title;
 				player.local_src = arrLinks[i].src;
-                this.loadQueue(player);       	
+				this.loadQueue(player);       	
 
         
     }
 
+};
+dispatcher.prototype.calculatePlayed = function calculatePlayed() {
+var cnt=0;
+var x;
+for (x in this.playedRoliks){
+  cnt++;
+}
+
+return cnt;
 };
 dispatcher.prototype.formLoadQueue = function formLoadQueue(f_id) {
 if(!this.cachedFlagMy) return;
 if(this.predLoadQueueCachedObjects.hasOwnProperty(f_id)){
 return;
 }
+if(this.queueToPlayExit) return;
+var cntPlayed=this.calculatePlayed();
+if(this.config.adslimit<=cntPlayed){
+this.predLoadQueue=[];
+this.loadedCnt=cntPlayed;
+return;
+}
+
+
+
 this.predLoadQueueCachedObjects[f_id]=1;
     var self=this; 
     var object = this.predLoadQueue.shift();
@@ -300,6 +327,9 @@ this.predLoadQueueCachedObjects[f_id]=1;
 				switch(type){
 				case "firstQuartile":
 				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
+				self.formLoadQueue(id);
+				
+				
 				break;
 				}
 				self.sendStatistic({id:id,eventName:type}); 
@@ -310,7 +340,33 @@ this.predLoadQueueCachedObjects[f_id]=1;
                 this.loadQueue(player);
 };
 dispatcher.prototype.dispatchQueue = function dispatchQueue(id,data) {
-document.getElementById("ilias_id").innerHTML+='<br>'+data.message;
+if (this.queueToPlayExit) return;
+ this.deleteSemaphore(id); //вытащить пластинку
+ data.player.container.style.display="none";
+
+
+ console.log([955581,data.message,'режим '+this.cachedFlagMy]);
+ var exitA=0;
+ var x;
+ var i=0;
+ for (x in this.loadedStatuses){
+ if(this.loadedStatuses[x]==0) //не от всех пришёл ответ
+ exitA|=1;
+ console.log(['про','инд:'+x,'стат:'+this.loadedStatuses[x],'итерат:'+i,'оль:'+this.loadedCnt]);
+ i++;
+ }
+ if(i<this.loadedCnt) // не все отправлены
+ exitA|=2;
+
+ if(this.queueToPLay.length) //в очереди на проигрыватель
+ exitA|=4;
+
+     if (this.checkSemaphores())  //все отыграли
+	 exitA|=8;
+     console.log([955581,"рез",exitA]);
+	 if(!exitA)
+     this.playExit();   
+
 };
 dispatcher.prototype.loadQueue = function loadQueue(player) {
  if (this.queueToPlayExit) return;
@@ -327,37 +383,46 @@ dispatcher.prototype.loadQueue = function loadQueue(player) {
         }
         return match;
     });
-	//alert(uri);
+   
     this.loadedStatuses[player.id_local_source] = 0;
 	this.sendStatistic({id:player.id_local_source,eventName:'srcRequest'});  
 	player.load(uri).then(function startAd() {
+	    player.once('AdError', function (reason) {
+			if(self.cachedFlagMy==1){
+	         self.formLoadQueue(player.id_local_source);
+	         }
+		self.dispatchQueue(player.id_local_source,{player:player,message:'вернул '+player.local_title+JSON.stringify(reason)});
+		});
+		player.once('AdStopped', function () {
+		self.dispatchQueue(player.id_local_source,{player:player,message:' остановлен '+player.local_title});
+         });
+	    self.loadedStatuses[player.id_local_source] = 1;
 	
-	self.loadedStatuses[player.id_local_source] = 1;
-	
-	document.getElementById("ilias_id").innerHTML+='<br>готов 1'+player.local_title;
-	//alert('готов 1'+player.local_title);
-	//self.dispatchQueue(player.id_local_source,{message:'играет '+player.local_title});
 	player.startAd().then(function (res) {
-	document.getElementById("ilias_id").innerHTML+='<br>готов 2'+player.local_title;
 	     player.pauseAd();
          self.filterQueue(player); 
         }).catch(function (reason) {
+			if(self.cachedFlagMy==1){
+	        self.formLoadQueue(player.id_local_source);
+	        }
 		self.loadedStatuses[player.id_local_source] = 2;
-		self.deleteSemaphore(player.id_local_source);
-		self.dispatchQueue(player.id_local_source,{message:'не играет '+player.local_title+JSON.stringify(reason)});
+		//self.deleteSemaphore(player.id_local_source);
+		self.dispatchQueue(player.id_local_source,{player:player,message:'не играет '+player.local_title+JSON.stringify(reason)});
 	    });
 	}).catch(function(reason){
-	//alert('не готов 1 '+player.local_title);
+	if(self.cachedFlagMy==1){
+	self.formLoadQueue(player.id_local_source);
+	}
 	self.loadedStatuses[player.id_local_source] = 2;
-	self.deleteSemaphore(player.id_local_source);
-	self.dispatchQueue(player.id_local_source,{message:'ошибка '+player.local_title+JSON.stringify(reason)});
+	//self.deleteSemaphore(player.id_local_source);
+
+	self.dispatchQueue(player.id_local_source,{player:player,message:'ошибка '+player.local_title+JSON.stringify(reason)});
 	
 	});
 	
 };
 dispatcher.prototype.filterQueue = function filterQueue(player) {
     if (this.queueToPlayExit) return;
-
     this.queueToPLay.push(player);   
     this.playQueue();
 };
@@ -372,26 +437,63 @@ dispatcher.prototype.playQueue = function playQueue() {
 
     }
    var player = this.queueToPLay.shift();
+   
    if (!player) return;	
-   this.setSemaphore(player.id_local_source);
+    console.log([9555812,"ролик",player.id_local_source,player.local_title]);
+    this.setSemaphore(player.id_local_source);
     var container = player.container;
+
     this.showController();
     this.showContainer();
     this.clearPlaceholder();
-    this.VideoSlot.init(player);
-    container.style.display = "block";
-	player.resolveAd();
-	//alert(container.innerHTML);
-   // alert(player.local_title+' игрок');	
-   
+	container.style.display = "block";
 	
+	if(player.pType==3){
+    this.VideoSlot.init(player);
+	}
+	if(player.pType!=4){
+	   player.container.style.opacity="1";
+	   player.container.style.filter="alpha(Opacity=100)";
+
+	   self.container.style.opacity="1";
+	   self.container.style.filter="alpha(Opacity=100)";
+	player.resumeAd();
+	
+	}else{
+	   var took=1;
+	   player.on('AdRemainingTimeChange',function(args) {
+	   if(took){
+	    took=0;
+        self.clearPlaceholder();
+		}
+       });
+	   this.VideoSlot.clear();
+	   if(this.playType==2){
+       this.container.style.opacity="0";
+	   this.container.style.filter="alpha(Opacity=0)";
+		}
+	   player.once("AdClickThru", function onAdClickThru(url, id, playerHandles) {
+	   self.showPlaceholder();
+	   player.__private__.player.video.play();
+	   player.container.style.opacity="1";
+	   player.container.style.filter="alpha(Opacity=100)";
+	   self.container.style.opacity="1";
+	   self.container.style.filter="alpha(Opacity=100)";
+	   self.VideoSlot.init(player);
+    });
+	}
 };
 dispatcher.prototype.checkSemaphores = function checkSemaphores() {
+var exitA=0;
 var x;
+var i=0;
 for(x in this.queueSemaphores){
+i++;
+//console.log([955581,"стереотип",x,this.queueSemaphores[x]]); 
 if(this.queueSemaphores[x])
-return true;
+exitA=1;
 }
+if(exitA) return true;
 return false;
 };
 dispatcher.prototype.deleteSemaphore = function deleteSemaphore(id) {
@@ -400,63 +502,45 @@ dispatcher.prototype.deleteSemaphore = function deleteSemaphore(id) {
 dispatcher.prototype.setSemaphore = function setSemaphore(id) {
     this.queueSemaphores[id]=1;
 };
+dispatcher.prototype.checkStatus = function checkStatus(data) {
+    if (this.queueToPlayExit) return;
+    var self = this;
+    if (this.checkSemaphores()) {
+	return;
+	}
 
-
-/*
-dispatcher.prototype.initQueue = function initQueue(arrLinks) {
-    
-
-	if(this.cachedFlagMy)
-	
-	this.newformLoadQueue(0);
-	
 };
-dispatcher.prototype.newformLoadQueue = function newformLoadQueue(f_id) {
-if (this.queueToPlayExit) return;
-if(!this.cachedFlagMy) return;
-if(this.predLoadQueueCachedObjects.hasOwnProperty(f_id)){
-return;
-}
-this.predLoadQueueCachedObjects[f_id]=1;
-var self=this; 
-    var object = this.predLoadQueue.shift();
-	if(!object) return;
-	//console.log(["пост - лоад 2",object.id]);  
-	            var film_id = "bycredit_" + object.id;
+dispatcher.prototype.playExit = function playExit() {
+
+    if (this.queueToPlayExit) return;
+	this.queueToPlayExit = 1;
+	this.VideoSlot.clear();
+	console.log([955581,"ексит"]);
+    this.controller.style.display = 'none';
+    this.collbackFunction(this.config);
+
+};
+dispatcher.prototype.playAds = function playAds(dopAds,f1){
+                var self = this;
+                var film_id = "bycredit_" + dopAds.id;
                 var container = this.prepareFrame(film_id);
                 var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
 				switch(type){
 				case "firstQuartile":
-				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
+				
+				
 				break;
 				}
-				self.sendStatistic({id:id,eventName:type}); 
-				console.log(["111-",self.timerToClose,self.cachedConf[id].title,type]); 
+				
 				}});
-                player.id_local_source = object.id;
-                player.local_title = object.title;
-                this.loadQueue(object, player);
-
-};
-dispatcher.prototype.preLoadQueue = function preLoadQueue(object) {
-//console.log(["прелоад 2",object.id]);  
-this.predLoadQueue.push(object);
-//this.predLoadQueueObjects[object.id]=object;
-};
-dispatcher.prototype.prepareFrame = function prepareFrame(id) {
-    var div = document.createElement('DIV');
-    div.id = id;
-    div.style.display = "none";
-    div.style.width = "100%";
-    div.style.height = "100%";
-
-    this.container.appendChild(div);
-    return div;
-};
-dispatcher.prototype.loadQueue = function loadQueue(object, player) {
-    if (this.queueToPlayExit) return;
-	var self = this;
-    var uri = object.src.replace(/\{([a-z]+)\}/g, function (match) {
+                player.id_local_source = dopAds.id;
+                player.local_title = dopAds.title;
+				player.local_src = dopAds.src;
+	 if(player.id_local_source==-5) //трейлер
+	 {
+	
+	 }
+        var uri = player.local_src.replace(/\{([a-z]+)\}/g, function (match) {
         var fn = match.replace(/[\{\}]+/g, '');
         switch (fn) {
             case "rnd":
@@ -468,519 +552,143 @@ dispatcher.prototype.loadQueue = function loadQueue(object, player) {
         }
         return match;
     });
-    this.loadedStatuses[ player.id_local_source] = 0;
-    this.sendStatistic({id:player.id_local_source,eventName:'srcRequest'});  
 	
-    player.once('AdStopped', function () {
-        self.deleteSemaphore(player.id_local_source);
-        console.log([95558, 'Плеер закончился!', player.id_local_source, player.local_title]);
-        self.checkStatus({id: player.id_local_source, event: 'ended'});
-		self.clearPlayerContainer(player.container);
-		
-    });
-    player.once('AdError', function (reason) {
-		self.deleteSemaphore(player.id_local_source);
-	  
-        
-		var mess = '';
-  	                if(typeof reason != 'undefined' && typeof reason.message != 'undefined'){
-	                mess=reason.message;
-	                }
-	                else{
-	                if(typeof reason != 'undefined') 
-                    mess=JSON.stringify(reason);
-	                }
-		 self.sendTmp({id: player.id_local_source, event: 'on error :'+mess});	
-	    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:mess}); 
-        console.log([95558, 'Ошибка плеера лог!', player.local_title, reason]);
-        self.loadedStatuses[player.id_local_source] = 2;
-        self.checkStatus({id: player.id_local_source, event: 'error : '+mess}); 
-		self.clearPlayerContainer(player.container);
-		self.newformLoadQueue(player.id_local_source);
-		
-    });
-    player.on('AdRemainingTimeChange',function(args) {
-	if(args.hasOwnProperty("sec") && args.sec && args.sec>3){
-	 self.sendStatistic({id:player.id_local_source,eventName:'filterPlayMedia'}); 
-	}
-    });
-    
-    self.sendTmp({id: player.id_local_source, event: 'try load :'+player.local_title});	
     player.load(uri).then(function startAd() {
-	self.loadedStatuses[player.id_local_source] = 1;
-    self.sendTmp({id: player.id_local_source, event: 'loaded ok :'+player.local_title});	
-        console.log([95558, 'Плеер заргузился', player.pType, player.id_local_source, player.local_title]);
-		
-        player.startAd().then(function (res) {
-            player.pauseAd();
-            console.log([95558, 'Плеер готов', player.id_local_source, player.local_title]); 
-         
-            
-            self.filterQueue(player); 
-        }).catch(function (reason) {
-			self.deleteSemaphore(player.id_local_source);
-            self.sendTmp({id: player.id_local_source, event: 'on noready :'+player.local_title});	
-            self.loadedStatuses[player.id_local_source] = 2;
-            console.log([95558, 'Плеер не готов', player.id_local_source, reason]);
-			
-            self.checkStatus({id: player.id_local_source, event: 'error1'});
-			self.clearPlayerContainer(player.container);
-			self.newformLoadQueue(player.id_local_source);
-        });
-    }).catch(function (reason) {
-	    
-	    //self.queueToPlaySemaphore = 0; 
-		self.deleteSemaphore(player.id_local_source);
-        self.loadedStatuses[player.id_local_source] = 2;
-		
-        console.log([95558, 'Плеер не загрузился', player.local_title, reason]);
-        self.checkStatus({id: player.id_local_source, event: 'noload :'+player.local_title});
-		self.sendTmp({id: player.id_local_source, event: 'on noload :'+player.local_title});
-        self.clearPlayerContainer(player.container);		
-		self.newformLoadQueue(player.id_local_source);
-		
-    });
-
-
-};
-dispatcher.prototype.secondQueue = function secondQueue(player) {
-    console.log(['id_player отложен', this.cachedConf[player.id_local_source].title]);
-    var x;
-    var i = 0;
-    var yesReady  = 0;
-	var fin = 0;
-    for (x in this.loadedStatuses) {
-        if (x != player.id_local_source && this.loadedStatuses[x]==1) {
-		
-		  yesReady=1;
-        }
-        i++;
-        
-    }
-	 yesReady=0;
-	if(!yesReady){
-	console.log(["otl 0 :",player.id_local_source]);
-    this.playedJumpedTop[player.id_local_source]=0;
-	this.queueToPLay.push(player);
-    this.playQueue();
-	}
-};
-dispatcher.prototype.filterQueue = function filterQueue(player) {
-   
-     if(this.indexDefault.hasOwnProperty(player.id_local_source)){
-	   this.playedJumpedTop[player.id_local_source]=1;
-	   this.indexDefault[player.id_local_source]=player;
-	   this.checkStatus({id: player.id_local_source, event: 'def 1 :'+player.local_title});
-	   return;
-	  }
-
-    if(!this.cachedFlagMy && this.indexMassive.hasOwnProperty(player.id_local_source)){ 
-	var self=this;
-	    setTimeout(function(){
-		self.secondQueue(player);
-		}, 1500);
-		return;
-	}
-    this.queueToPLay.push(player);   
-    this.playQueue();
-};
-dispatcher.prototype.setSemaphore = function setSemaphore(id) {
-	var data={id:id,event:"set"+'|'+id};
-	data.fin="";
-    data.matrix = [];
-    data.status = [];
-	this.sendPixel(data);
-    this.queueSemaphores[id]=1;
-};
-dispatcher.prototype.deleteSemaphore = function deleteSemaphore(id) {
-console.log('clear '+id);
-if(this.playedJumpedTop.hasOwnProperty(id))
-this.playedJumpedTop[id]=0;
-if(this.queueSemaphores.hasOwnProperty(id)){
-	var data={id:id,event:"delete|"+id+'|'+this.queueSemaphores.hasOwnProperty(id)+'|'+JSON.stringify(this.queueSemaphores)};
-	data.fin="";
-    data.matrix = [];
-    data.status = [];
-	this.sendPixel(data);
-	var data={id:id,event:"delete"};
-	data.fin="";
-    data.matrix = [];
-    data.status = [];
-	this.sendPixel(data);
-delete this.queueSemaphores[id];
-
-
-	var data={id:id,event:"delete|"+id+'|'+this.queueSemaphores.hasOwnProperty(id)+'|'+JSON.stringify(this.queueSemaphores)};
-	data.fin="";
-    data.matrix = [];
-    data.status = [];
-	this.sendPixel(data);
-}
-
-};
-dispatcher.prototype.checkSemaphores = function checkSemaphores() {
-this.queueToPlaySemaphore=0;
-var x;
-for(x in this.queueSemaphores){
-this.queueToPlaySemaphore=1;
-return;
-}
-
-};
-dispatcher.prototype.playQueue = function playQueue(queueCnt) {
-    queueCnt=typeof queueCnt=="undefined"?20:queueCnt;
-	if(queueCnt<=0) return;
-    if (this.queueToPlayExit) return;
-	this.checkSemaphores();
-    var self = this;
-    if (this.queueToPlaySemaphore) {
-        setTimeout(function () {
-            self.playQueue();
-        }, 500);
-        return;
-
-    }
-	
-	if(1==0 && this.AllowedStart==0){
-		var self=this;
-	    setTimeout(function(){
-		self.playQueue((queueCnt-1));
-		}, 500);
-		return;
-	}
-	
-    var player = this.queueToPLay.shift();
-
-	  	var data={id:player.id_local_source,event:"start play"};
-	data.fin="";
-    data.matrix = [];
-    data.status = [];
-	this.sendPixel(data);
-    if (!player) return;
-   
-    this.setSemaphore(player.id_local_source);
-    this.playedCnt++;
-	
-    var container = player.container;
-    console.log([95558, 'Плеер на паузе', player.pType, player.local_title]);
-    this.showController();
-    this.showContainer();
-    this.clearPlaceholder();
-
-    this.VideoSlot.init(player);
-
-    container.style.display = "block";
-	this.sendStatistic({id:player.id_local_source,eventName:'startPlayMedia'}); 
-    player.resumeAd();
-    this.clearPlaceholder();
-};
-dispatcher.prototype.checkStatus = function checkStatus(data) {
-    var cnt5=0;
-    if (this.queueToPlayExit) return true;
-	
-	switch(this.mytype){
-	//case "Autoplay":
-	case "Overlay":
-	var ztn;
-	
-	for (ztn in this.playedAllCnt){
-	cnt5++;
-	//console.log(["плейед",ztn,this.cachedConf[ztn].title,this.cachedConf[data.id].title]);
-	}
-	if(cnt5 && cnt5>this.config.adslimit){
-			var z;
-			for (z in this.indexDefault){
-			if(this.indexDefault[z]){
-			this.queueToPLay.push(this.indexDefault[z]);   
-			this.playQueue();
-			this.indexDefault[z] = null;
-			return true;
-			}
-			}
-	    this.lastDriverId = data.id;
-	    this.playExit();
-        return true;
-	}
-	break;
-	}
-	console.log(["start checked status"]);
-	var delayedIndex=0;
-	var yh;
-	
-	for (yh in this.playedJumpedTop) {
-	console.log(["otl:",yh,this.playedJumpedTop[yh]]); 
-	if(this.playedJumpedTop[yh] != 0 ){
-	   
-	   delayedIndex=1;
-	 }
-	}
-	 
-	
-	
-	this.checkSemaphores();
-    var x;
-    var i = 0;
-    var noReady = 0;
-	var fin = 0;
-    for (x in this.loadedStatuses) {
-        if (!this.loadedStatuses[x]) {
-            noReady = 1;
-
-        }
-        i++;
-    }
-	data.fin="";
-    data.matrix = this.loadedStatuses;
-    data.status = [i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady];
-	if (i == this.loadedCnt &&  !noReady && !this.queueToPlaySemaphore && !this.queueToPLay.length && !delayedIndex) {
-	fin = 1;
-	
-	
-	}
-	
-    
-    console.log([i, this.loadedCnt, this.queueToPlaySemaphore, this.queueToPLay.length, noReady,delayedIndex]);
-    //if (noReady) fin=0;
-	//if(delayedIndex) fin=0;
-	if(fin)
-	data.fin="finish self "+cnt5+"<>"+this.config.adslimit;
-	this.sendPixel(data);
-    if (fin) {
-	if(cnt5 && cnt5>this.config.adslimit){
-	var old=data.event;
-	data.event="cntall";
-	this.sendPixel(data);
-	data.event=old;
-	}
-	var z;
-	for (z in this.indexDefault){
-	
-	if(this.indexDefault[z]){
-	this.queueToPLay.push(this.indexDefault[z]);   
-    this.playQueue();
-	this.indexDefault[z] = null;
-	return true;
-	}
-	}
-	
-	
-	    this.lastDriverId = data.id;
-	    this.playExit();
-        return true;
-    }
-     
-	
-    return false;
-};
-dispatcher.prototype.playExit = function playExit() {
-
-    if (this.queueToPlayExit) return;
-	this.queueToPlayExit = 1;
-	this.VideoSlot.clear();
-	
-    var data={id:this.lastDriverId,event:"playExit"};
-	data.fin="";
-    data.matrix = [];
-    data.status = [];
-	this.sendPixel(data);
-	
-    
-    this.controller.style.display = 'none';
-    this.collbackFunction(this.config);
-
-};
-dispatcher.prototype.sendTmp = function sendTmp(data) {
- 
-    data.fin="";
-    data.matrix = [];
-    data.status=[];
-	this.sendPixel(data);
-};
-dispatcher.prototype.sendOldPixel = function sendOldPixel(data) 
-{
-  var preRemoteData = {
-        key: this.GlobalMyGUITemp,
-        fromUrl: encodeURIComponent(this.fromUrl),
-        pid: this.config.pid,
-        affiliate_id: this.config.affiliate_id,
-        id_src: data.id,
-        matrix: data.matrix,
-        event: data.event,
-		mytype:this.mytype, 
-        status: data.status,
-        desc: this.config.isDesktop,
-		fin: data.fin
-    };
- //var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.pid,affiliate_id:this.affiliate_id,id_src:data.id};
- var preToURL = "https://api.market-place.su/Product/video/l3quest.php?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
-   //var preToURL="http://widget2.market-place.su/admin/statistic/video/put?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData)); 
-   //console.log(["url",preToURL]);
-  var img = new Image(1,1);
-  img.src =  preToURL; 
-  return;
-};
-dispatcher.prototype.sendPixel = function sendPixel(data) {
-	 if(data.event =="filterPlayMedia"){
-	 this.sendOldPixel(data); 
-	 }
-	return;
-   //return;
-    var preRemoteData = {
-        key: this.GlobalMyGUITemp,
-        fromUrl: encodeURIComponent(this.fromUrl),
-        pid: this.config.pid,
-        affiliate_id: this.config.affiliate_id,
-        id_src: data.id,
-        matrix: data.matrix,
-        event: data.event,
-        status: data.status,
-		mytype:this.mytype,
-        desc: this.config.isDesktop,
-		fin: data.fin
-    };
-    var preToURL = "https://api.market-place.su/Product/video/l2quest.php?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
-    //var preToURL="http://widget2.market-place.su/admin/statistic/video/put?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData));
-    var img = new Image(1, 1);
-    img.src = preToURL;
-    return;
-};
-dispatcher.prototype.playTvigle = function playTvigle(data) 
-{
-
-var self = this;
-
- 
-	 var uri="https://video.market-place.su/vast/tvigle.xml?r="+Math.random();
-	 var id_player=12;
-	            var film_id = "bycredit_" + id_player;
-                var container = this.prepareFrame(film_id);
-				
-                var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
-				switch(type){
-				case "firstQuartile":
-				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
-				break;
-				}
-				self.sendStatistic({id:id,eventName:type}); 
-				console.log(["111-",self.timerToClose,player.local_title,type]); 
-				}});
-                player.id_local_source = id_player;
-                player.local_title = "твигл";
-				
-		this.sendStatistic({id:player.id_local_source,eventName:'srcRequest'});  		
-        player.load(uri).then(function startAd() {
-        console.log([95558, 'твигл заргузился', player.pType, player.id_local_source, player.local_title]);
-		player.once('AdStopped', function () {
-		
-        console.log([95558, 'твигл остановлен', player.pType, player.local_title]);
-		self.clearPlayerContainer(player.container);
-		self.singleTon(data);
-         });
 		player.once('AdError', function (reason) {
-		var mess = '';
-  	                if(typeof reason != 'undefined' && typeof reason.message != 'undefined'){
-	                mess=reason.message;
-	                }
-	                else{
-	                if(typeof reason != 'undefined') 
-                    mess=JSON.stringify(reason);
-	                }
-	    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:mess}); 
-        console.log([95558, 'Ошибка плеера лог!', player.local_title, reason]);
-      	self.clearPlayerContainer(player.container);
-		self.singleTon(data);
-    });
-        player.startAd().then(function (res) {
-        var container = player.container;
-         
-        self.showController();
-        self.showContainer();
-        self.clearPlaceholder();
-       
-        container.style.display = "block";
-		console.log([95558, 'твигл заиграл', player.pType, player.id_local_source, player.local_title]);
-        }).catch(function (reason) {
-          console.log([95558, 'твигл слетел', reason]);
-		      self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:mess});
-		  	  self.clearPlayerContainer(player.container);
-			 self.singleTon(data);
-        });
-    }).catch(function (reason) {
-	console.log([95558, 'твигл незагрузился', reason]);  
-	self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:mess});
-	self.clearPlayerContainer(player.container);
-	self.singleTon(data);
-	
-    });				
-
-//console.log("после твигла");
-//self.playTrailer(data);
-};
-dispatcher.prototype.singleTon = function singleTon(data) {
-if(this.popularTrailer) return ;
-this.popularTrailer=1;
-var in_to;
-var cnt5=0;
- for (in_to in this.playedAllCnt){
- if(in_to!=-3){
- cnt5++;
- console.log(["xp-1",in_to,cnt5]);
- }
- }
- if(cnt5){
- this.playTrailer(data);
- return;
- }
-data.callback();
-
-};
-dispatcher.prototype.playTrailer = function playTrailer(data) 
-{
-
-	 var self=this;
-	 var uri="https://video.market-place.su/proxy_trailer/";
-	 var id_player=-3;
-	            var film_id = "bycredit_" + id_player;
-                var container = this.prepareFrame(film_id);
-                var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
-				}});
-                player.id_local_source = id_player;
-                player.local_title = "трейлер";
-				
-				
-        player.load(uri).then(function startAd() {
-        console.log([95558, 'трейлер заргузился', player.pType, player.id_local_source, player.local_title]);
+		player.container.style.display="none";
+		 self.VideoSlot.clear();
+         f1();
+		});
 		player.once('AdStopped', function () {
-        console.log([95558, 'трейлер остановлен', player.pType, player.local_title]);
-		data.callback();
+		player.container.style.display="none";
+		 self.VideoSlot.clear();
+		 f1();
          });
+		 if(player.id_local_source==-5){ //
+        // alert(player.__private__.player.video.controls);
+         player.__private__.player.video.controls=true;
+		 }
+		player.startAd().then(function (res) {
+	    player.pauseAd();
 		
-        player.startAd().then(function (res) {
-        var container = player.container;
-       
-        self.showController();
-        self.showContainer();
-        self.clearPlaceholder();
-        player.__private__.player.video.controls=true;
-		player.__private__.player.video.muted=true;
-        container.style.display = "block";
-		console.log([95558, 'трейлер заиграл', player.pType, player.id_local_source, player.local_title]);
-        }).catch(function (reason) {
-          console.log([95558, 'трейлер слетел', reason]);
-		  data.callback();
-        });
-    }).catch(function (reason) {
-	console.log([95558, 'трейлер незагрузился', reason]);  
-    data.callback();	
-    });				
-				
-            
-};
+    self.showController();
+    self.showContainer();
+    self.clearPlaceholder();
+	container.style.display = "block";
+	
+	if(player.pType==3){
+	 if(player.id_local_source==-5){ //трейлер
+     
+      player.__private__.player.video.controls=true;
+	  }else{
+	 self.VideoSlot.init(player);
+	}
+	}
+	if(player.pType!=4){
+	   player.container.style.opacity="1";
+	   player.container.style.filter="alpha(Opacity=100)";
 
-*/
+	   self.container.style.opacity="1";
+	   self.container.style.filter="alpha(Opacity=100)";
+	   player.resumeAd();
+	
+	}else{ 
+	   if(player.id_local_source==-4){ //твигл
+	    player.container.style.display="none";
+	    self.VideoSlot.clear();
+		f1();
+		return;
+	   }
+	   var took=1;
+	   player.on('AdRemainingTimeChange',function(args) {
+	   if(took){
+	    took=0;
+        self.clearPlaceholder();
+		}
+       });
+	   self.VideoSlot.clear();
+	   if(self.playType==2){
+       self.container.style.opacity="0";
+	   self.container.style.filter="alpha(Opacity=0)";
+		}
+	   player.once("AdClickThru", function onAdClickThru(url, id, playerHandles) {
+	   self.showPlaceholder();
+	   player.__private__.player.video.play();
+	   player.container.style.opacity="1";
+	   player.container.style.filter="alpha(Opacity=100)";
+	   self.container.style.opacity="1";
+	   self.container.style.filter="alpha(Opacity=100)";
+	   if(player.id_local_source==-5){ //
+        // alert(player.__private__.player.video.controls);
+         //player.__private__.player.video.controls=true;
+	    }else{
+	     self.VideoSlot.init(player);
+	    }
+       });
+	   
+	   }		
+        }).catch(function (reason) {
+		player.container.style.display="none";
+		self.VideoSlot.clear();
+		 f1();
+        }); 
+		 
+	}).catch(function(reason){
+	    player.container.style.display="none";
+		self.VideoSlot.clear();
+       	f1();
+    });
+
+};
+dispatcher.prototype.playDefault = function playDefault(f1){
+     if((this.popularTrailer&1)){
+	 f1();
+	 return;
+	 }
+	this.popularTrailer|=1;
+   	var self = this;
+	//this.config.default="https://widget.market-place.su/testvast.xml";
+   if(this.config.hasOwnProperty("default") && this.config.default){
+   
+	 var dopAds={"id":-3,"src":this.config.default,"priority":"10","title":"Заглушка","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-3","id_source":"-3","prioritet":"0"}};
+    this.playAds(dopAds,f1);
+	}else{
+	f1();
+	}
+};
+dispatcher.prototype.playTvigle = function playTvigle(f1){
+
+     if((this.popularTrailer&2)){
+	 f1();
+	 return;
+	 }
+	this.popularTrailer|=2;
+	   var isAndroid = /(android)/i.test(navigator.userAgent);
+	   if(isAndroid){
+	    f1();
+	    return
+	   }
+   	var self = this;
+	var uri="https://video.market-place.su/vast/tvigle.xml?r={rnd}";
+	 var dopAds={"id":-4,"src":uri,"priority":"10","title":"Твигл","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-4","id_source":"-4","prioritet":"0"}};
+    this.playAds(dopAds,f1);
+
+};
+dispatcher.prototype.playTrailer = function playTrailer(f1){
+     if((this.popularTrailer&4)){
+	 f1();
+	 return;
+	 }
+	this.popularTrailer|=4;
+   	var self = this;
+	var uri="https://video.market-place.su/proxy_trailer/";
+	 var dopAds={"id":-5,"src":uri,"priority":"10","title":"Трейлеры","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-5","id_source":"-5","prioritet":"0"}};
+    this.playAds(dopAds,f1);
+
+};
 dispatcher.prototype.sendStatistic = function sendStatistic(data) 
 {
-return;
+
   if(this.indexDefault.hasOwnProperty(data.id)){
    return;
   }
@@ -998,12 +706,18 @@ return;
  if (typeof this.cacheStatisticIndexes[data.id][data.eventName]!='undefined'){
   return;
  }
+ switch(data.eventName){
+ case "filterPlayMedia":
+ this.playedRoliks[data.id] = "fd";
+ break;
+ }
+ 
   this.cacheStatisticIndexes[data.id][data.eventName]=1; 
   var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.config.pid,affiliate_id:this.config.affiliate_id,cookie_id:this.cookieUserid,id_src:data.id,event:data.eventName,mess:m}; 
   var toURL="https://api.market-place.su/Product/video/l1stat.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData));
-  console.log([95558,'statistic',preRemoteData]);
-    //var img = new Image(1,1);
-   // img.src = toURL; 
+  //console.log([95558,'statistic',preRemoteData]);
+    var img = new Image(1,1);
+    img.src = toURL; 
    
 };
 

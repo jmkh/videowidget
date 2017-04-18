@@ -66,9 +66,7 @@ VideoSlot.prototype.init = function (player) {
     self.clear();
     self.player=player;
     self.player.adVolume= self.plSettings.mute?0:self.plSettings.vo;
-    if(player.pType!=3){
-        return;
-    }
+   
     self.Extentions={
         linkTxt:"Перейти на сайт рекламодателя",
         isClickable:0,
