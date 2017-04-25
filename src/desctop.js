@@ -30,6 +30,7 @@ window.colorTrailer = true;
 	c_data.index='broadcast';
 		//
 	}
+	
 	//c_data={pid:"20",affiliate_id:"56015401b3da9",h1:"IPHONE 7",index:c_data.index}; 
 	
 	 if(typeof c_data.h1=='undefined')
@@ -38,10 +39,15 @@ window.colorTrailer = true;
 	 bridge.addAction("execute",function(data){
 	 //alert('ios ini');
 	
-	 console.log(['config',data]);
+	// console.log(['config',data.index]);
    
 	 if(typeof data.config !="undefined"){
 	 data.config.page_index=c_data.index;
+	 
+	 if(c_data.hasOwnProperty("testframe")){
+	 data.config.testframe=1;
+	 console.log(["c_data --->",data.config]);
+	 }
 		 window.colorPixels = new mydispatcher("mycontoller","container","placeholder");
 		 window.colorPixels.playType=1;
 	 window.colorPixels.setConfig(data.config,defaultFunctionReplay);

@@ -37,6 +37,7 @@ function dispatcher(controller_id, container_id, placeholder_id) {
 	this.playedAllCnt={};
 	this.playedJumpedTop={};
 	this.popularTrailer=0;
+	this.OverplayAuto=0;
     this.referer = 'http://apptoday.ru';
     var self = this;
     if (typeof this.GlobalMyGUITemp == 'undefined') {
@@ -99,8 +100,13 @@ if(this.timerToClose<0){
     };
     this.LastcloseDiv.onclick=function(){
         document.body.innerHTML="";
-
+		if(self.config.hasOwnProperty("page_index")){
+		console.log(["test",self.config.page_index]);
+		window.parent.postMessage({name:"die",data:{index:self.config.page_index},bridgeAction:true},'*');
+		}else{
         window.parent.postMessage({die:1},"*");
+		}
+		//window.parent.postMessage({name:"die",data:{},bridgeAction:true},'*');
         return true;
     };
 
@@ -119,6 +125,13 @@ return;
 		self.timerToCloseFn();
 		}, 1000);
   
+};
+dispatcher.prototype.CheckOverplaySrc = function CheckOverplaySrc(id) {
+if(id==31 || id == 32){
+this.OverplayAuto=1;
+return true;
+}
+return false;
 };
 dispatcher.prototype.calculateParameters = function calculateParameters() {
 
@@ -173,10 +186,11 @@ dispatcher.prototype.prepareFrame = function prepareFrame(id) {
     return div;
 };
 dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
-	//config.ads=[{"id":20,"src":"http://ads.adfox.ru/252227/getCodeTest?p1=bvuqj&p2=fliy&pfc=bixdw&pfb=egbtg&fmt=1&pr=198578643&tags=inpage","priority":"215","title":"Test linear vast","created_at":"2017-04-13 12:02:11","updated_at":"2017-04-13 12:02:21","pivot":{"id_block":"21","id_source":"20","prioritet":"0"}},{"id":21,"src":"http://ads.adfox.ru/252227/getCode?p1=bvuqj&p2=fliy&pfc=bixdw&pfb=egbtg&fmt=1&pr=198578643&tags=inpage","priority":"216","title":"Test","created_at":"2017-04-13 12:12:24","updated_at":"2017-04-13 12:12:24","pivot":{"id_block":"21","id_source":"21","prioritet":"1"}},{"id":15,"src":"http://am15.net/video.php?type=direct&s=72097&show=preroll","priority":"2","title":"Advmaker Adult direct","created_at":"2017-04-11 12:14:33","updated_at":"2017-04-11 12:15:02","pivot":{"id_block":"21","id_source":"15","prioritet":"2"}}]
-	//config.ads=[{"id":20,"src":"https://widget.market-place.su/testvast.xml","priority":"215","title":"Test linear vast","created_at":"2017-04-13 12:02:11","updated_at":"2017-04-13 12:02:21","pivot":{"id_block":"21","id_source":"20","prioritet":"0"}},{"id":21,"src":"http://ads.adfox.ru/252227/getCode?p1=bvuqj&p2=fliy&pfc=bixdw&pfb=egbtg&fmt=1&pr=198578643&tags=inpage","priority":"216","title":"Test","created_at":"2017-04-13 12:12:24","updated_at":"2017-04-13 12:12:24","pivot":{"id_block":"21","id_source":"21","prioritet":"1"}},{"id":2001,"src":"https://widget.market-place.su/testvast.xml","priority":"215","title":"test2","created_at":"2017-04-13 12:02:11","updated_at":"2017-04-13 12:02:21","pivot":{"id_block":"21","id_source":"2001","prioritet":"0"}},{"id":2002,"src":"http://am15.net/video.php?type=direct&s=72097&show=preroll","priority":"215","title":"test3","created_at":"2017-04-13 12:02:11","updated_at":"2017-04-13 12:02:21","pivot":{"id_block":"21","id_source":"2001","prioritet":"0"}}];
 
-	 //config.adslimit = 1; 
+	console.log(["sds",config.ads]);
+    if(1==0 && config.hasOwnProperty("testframe")){
+    config.ads=[{"id":31,"src":"https://febwinter.com/api/vpaid/?userId=119204&format=2&sig=4b20d7413e4c84bb","priority":"123","title":"Winter","created_at":"2017-04-20 13:48:21","updated_at":"2017-04-21 16:01:04","pivot":{"id_block":"27","id_source":"31","prioritet":"0"}}];
+	}
     if (!config.hasOwnProperty('adslimit'))
         config.adslimit = 2;
     this.config = config;
@@ -216,25 +230,7 @@ dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 	this.initQueue(config.ads);
 	//this.startQueue(config.ads); 
 	return;
-	/*
-	var dopAds=[];
-	
-   
-	
-	if(this.config.hasOwnProperty("default") && this.config.default){
-	this.loadedCnt++;
-	//this.indexDefault[-3]={};
-	var dopAds=[{"id":-3,"src":this.config.default,"priority":"10","title":"Заглушка","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-3","id_source":"-3","prioritet":"0"}}];
-	config.ads.push({"id":-3,"src":this.config.default,"priority":"10","title":"Заглушка","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-3","id_source":"-3","prioritet":"0"}})
-	}
-	
-	this.initQueue(config.ads);
-	
-	
-	//if(dopAds.length>0){
-    //this.initQueue(dopAds);
-	//}
-	*/
+
 };
 dispatcher.prototype.restartQueue = function restartQueue(arrLinks) {
 this.indexMassive={};
@@ -255,9 +251,10 @@ this.cachedFlagMy=1;
 	if(i && (this.loadedCnt/i)<=2){
 	     this.indexMassive[arrLinks[i].id]=2;
 	     }
-		     if(arrLinks[i].pivot.id_block==20){
+		     if(arrLinks[i].pivot.id_block==20 || arrLinks[i].pivot.id_block==28){
 			 this.popularTrailer=6;
 			 }
+			this.CheckOverplaySrc(arrLinks[i].id);
          	this.predLoadQueue.push(arrLinks[i]);
          }
          this.formLoadQueue(0);
@@ -306,6 +303,7 @@ if(!this.cachedFlagMy) return;
 if(this.predLoadQueueCachedObjects.hasOwnProperty(f_id)){
 return;
 }
+
 if(this.queueToPlayExit) return;
 var cntPlayed=this.calculatePlayed();
 if(this.config.adslimit<=cntPlayed){
@@ -328,8 +326,6 @@ this.predLoadQueueCachedObjects[f_id]=1;
 				case "firstQuartile":
 				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
 				self.formLoadQueue(id);
-				
-				
 				break;
 				}
 				self.sendStatistic({id:id,eventName:type}); 
@@ -352,7 +348,7 @@ if (this.queueToPlayExit) return;
  for (x in this.loadedStatuses){
  if(this.loadedStatuses[x]==0) //не от всех пришёл ответ
  exitA|=1;
- console.log(['про','инд:'+x,'стат:'+this.loadedStatuses[x],'итерат:'+i,'оль:'+this.loadedCnt]);
+ //console.log(['про','инд:'+x,'стат:'+this.loadedStatuses[x],'итерат:'+i,'оль:'+this.loadedCnt]);
  i++;
  }
  if(i<this.loadedCnt) // не все отправлены
@@ -369,6 +365,7 @@ if (this.queueToPlayExit) return;
 
 };
 dispatcher.prototype.loadQueue = function loadQueue(player) {
+
  if (this.queueToPlayExit) return;
 	var self = this;
     var uri = player.local_src.replace(/\{([a-z]+)\}/g, function (match) {
@@ -387,21 +384,26 @@ dispatcher.prototype.loadQueue = function loadQueue(player) {
     this.loadedStatuses[player.id_local_source] = 0;
 	this.sendStatistic({id:player.id_local_source,eventName:'srcRequest'});  
 	player.load(uri).then(function startAd() {
+	self.sendStatistic({id:player.id_local_source,eventName:'startPlayMedia',mess:''}); 
 	    player.once('AdError', function (reason) {
+		self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
 			if(self.cachedFlagMy==1){
 	         self.formLoadQueue(player.id_local_source);
 	         }
 		self.dispatchQueue(player.id_local_source,{player:player,message:'вернул '+player.local_title+JSON.stringify(reason)});
 		});
 		player.once('AdStopped', function () {
+
 		self.dispatchQueue(player.id_local_source,{player:player,message:' остановлен '+player.local_title});
          });
 	    self.loadedStatuses[player.id_local_source] = 1;
 	
-	player.startAd().then(function (res) {
+	     player.startAd().then(function (res) {
 	     player.pauseAd();
          self.filterQueue(player); 
         }).catch(function (reason) {
+		
+		    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
 			if(self.cachedFlagMy==1){
 	        self.formLoadQueue(player.id_local_source);
 	        }
@@ -410,12 +412,15 @@ dispatcher.prototype.loadQueue = function loadQueue(player) {
 		self.dispatchQueue(player.id_local_source,{player:player,message:'не играет '+player.local_title+JSON.stringify(reason)});
 	    });
 	}).catch(function(reason){
+
+    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
+
 	if(self.cachedFlagMy==1){
 	self.formLoadQueue(player.id_local_source);
 	}
 	self.loadedStatuses[player.id_local_source] = 2;
 	//self.deleteSemaphore(player.id_local_source);
-
+    
 	self.dispatchQueue(player.id_local_source,{player:player,message:'ошибка '+player.local_title+JSON.stringify(reason)});
 	
 	});
@@ -447,17 +452,22 @@ dispatcher.prototype.playQueue = function playQueue() {
     this.showContainer();
     this.clearPlaceholder();
 	container.style.display = "block";
+
+	
 	
 	if(player.pType==3){
     this.VideoSlot.init(player);
 	}
-	if(player.pType!=4){
+	if(player.pType!=4 && !this.CheckOverplaySrc(player.id_local_source)){
 	   player.container.style.opacity="1";
 	   player.container.style.filter="alpha(Opacity=100)";
 
 	   self.container.style.opacity="1";
 	   self.container.style.filter="alpha(Opacity=100)";
-	player.resumeAd();
+	  	if(this.OverplayAut!=1){
+        player.resumeAd();
+        } 
+	
 	
 	}else{
 	   var took=1;
@@ -468,10 +478,27 @@ dispatcher.prototype.playQueue = function playQueue() {
 		}
        });
 	   this.VideoSlot.clear();
+	   //console.log(["или тут всё",this.playType,this.CheckOverplaySrc(player)]); 
+	   
 	   if(this.playType==2){
-       this.container.style.opacity="0";
-	   this.container.style.filter="alpha(Opacity=0)";
+			player.once("AdPlaying", function onAdClickThru() {
+			self.container.style.opacity="0";
+			self.container.style.filter="alpha(Opacity=0)";
+	     });
 		}
+	   if(this.CheckOverplaySrc(player.id_local_source)){
+	   
+		player.once("AdPlaying", function onAdClickThru() {
+		self.OverplayAut=2;
+	   player.container.style.opacity="1";
+	   player.container.style.filter="alpha(Opacity=100)";
+	   self.container.style.opacity="1";
+	   self.container.style.filter="alpha(Opacity=100)";
+	   self.formLoadQueue(player.id_local_source);
+	   self.sendStatistic({id:player.id_local_source,eventName:'filterPlayMedia'}); 
+	   
+		 });
+	   }
 	   player.once("AdClickThru", function onAdClickThru(url, id, playerHandles) {
 	   self.showPlaceholder();
 	   player.__private__.player.video.play();
@@ -547,7 +574,7 @@ dispatcher.prototype.playAds = function playAds(dopAds,f1){
                 return Math.random();
                 break
             case "ref":
-                return encodeURIComponent(self.referer);
+                return encodeURIComponent(self.referer); 
                 break;
         }
         return match;
@@ -715,7 +742,7 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data)
   this.cacheStatisticIndexes[data.id][data.eventName]=1; 
   var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.config.pid,affiliate_id:this.config.affiliate_id,cookie_id:this.cookieUserid,id_src:data.id,event:data.eventName,mess:m}; 
   var toURL="https://api.market-place.su/Product/video/l1stat.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData));
-  //console.log([95558,'statistic',preRemoteData]);
+  console.log([95558,'statistic',data.eventName]);
     var img = new Image(1,1);
     img.src = toURL; 
    

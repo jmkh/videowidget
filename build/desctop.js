@@ -1,3 +1,4 @@
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 window.colorTrailer = true; 
 
 (function() {
@@ -30,20 +31,32 @@ window.colorTrailer = true;
 	c_data.index='broadcast';
 		//
 	}
-	 //c_data={pid:"20",affiliate_id:"56015401b3da9",h1:"IPHONE 7",index:c_data.index};  
+	
+	//c_data={pid:"20",affiliate_id:"56015401b3da9",h1:"IPHONE 7",index:c_data.index}; 
+	
 	 if(typeof c_data.h1=='undefined')
 	 c_data.h1=unescape(c_data.h1); 
      var bridge=new Bridge(c_data.index);
 	 bridge.addAction("execute",function(data){
-	 console.log(['config',data]);
+	 //alert('ios ini');
+	
+	// console.log(['config',data.index]);
    
 	 if(typeof data.config !="undefined"){
 	 data.config.page_index=c_data.index;
+	 
+	 if(c_data.hasOwnProperty("testframe")){
+	 data.config.testframe=1;
+	 console.log(["c_data --->",data.config]);
+	 }
 		 window.colorPixels = new mydispatcher("mycontoller","container","placeholder");
-		 window.colorPixels.playType=2;
+		 window.colorPixels.playType=1;
 	 window.colorPixels.setConfig(data.config,defaultFunctionReplay);
+	 
      }
+	 
      });
+    
     CallAction('ready',{index:c_data.index},window.parent);
 	 
 	 
@@ -57,7 +70,7 @@ window.colorTrailer = true;
         }, 10000);
 	 window.colorPixels.setConfig(config,function(){
 	 return;
-	 console.log(["кольбэк если надо"]);
+	 console.log(["������� ���� ����"]);
 		 var container=document.querySelector('#container');
 		 var controller=document.querySelector('#mycontoller');
 		 var placeholder=document.querySelector('#placeholder');
@@ -66,7 +79,7 @@ window.colorTrailer = true;
 		 container.style.opacity=1;
 		 controller.style.display='block';
 		 window.colorPixels.playTvigle({callback:function(){
-		 console.log('вышел в лес');
+		 console.log('����� � ���');
 		 window.parent.postMessage({die:1},"*");
 		 }});
 
@@ -82,9 +95,10 @@ window.colorTrailer = true;
         window.attachEvent('onload', function(){loadAssinc();});
      else
         window.addEventListener('load', function(){loadAssinc();}, false);
-	 setTimeout( // если страница не заканчивается
+	 setTimeout( // ���� �������� �� �������������
      function(){
      loadAssinc();
      },
      101);
 })(); 
+},{}]},{},[1])

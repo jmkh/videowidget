@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" style="margin: 0;">
+<head>
+   <meta charset="utf-8">
+   <title>оверплей</title> 
+
+   
+
+</head>
+<body style="margin: 0;padding: 0;">
+<div style="border:1px solid #000000">
+	<video controls="controls"  height="375" width="500"><source src="http://www.html5andcss3.org/media/sample_video.mp4" type="video/mp4"><source src="your ogg media file name" type="video/ogg">Your browser does not support the video tag.</video>
+</div>
+<script>
+    (function(){
+	
+	
+        var s=document.createElement("script");
+        s.src="//apptoday.ru/autogit/android/test_overplay_api.js"+"?p="+Math.random();
+        s.onload=function(){
+		
+            new  CreateOverplayWidget(
+
+                   {affiliate_id:"56015401b3da9",pid:"293",selector:"video"}
+
+            );
+
+        };
+        document.body.appendChild(s);
+    })();
+</script>
+</body>
+</html>  
