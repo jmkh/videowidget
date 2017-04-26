@@ -13,10 +13,6 @@ gulp.task('css', function(){
    .pipe(minify())
    .pipe(gulp.dest('build'));
 });
-gulp.task('overlay', function(){
-    gulp.src('src/overlay.js')
-        .pipe(minify())
-        .pipe(gulp.dest('build'));
-});
+
  gulp.task('default',['js','css'],function(){
 }); 

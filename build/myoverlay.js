@@ -396,133 +396,6 @@ VideoSlot.prototype.ConrolePaused = function ConrolePaused(isClickable)
 };
 module.exports = VideoSlot;
 },{"./CookieDriver":1}],3:[function(require,module,exports){
-/**
- * Created by admin on 04.04.17.
- */
-
-var EventEmitter = require('events').EventEmitter;
-function defaults(obj,defaults){
-    var res={};
-    obj=obj||{};
-    for(var i in defaults ){
-        if(defaults.hasOwnProperty(i)){
-            res[i]=obj[i]||defaults[i];
-        }
-    }
-    return res;
-}
-function inherits(ctor,superCtor){
-
-    if (typeof Object.create === 'function') {
-        // implementation from standard node.js 'util' module
-
-        ctor.super_ = superCtor;
-        ctor.prototype = Object.create(superCtor.prototype, {
-            constructor: {
-                value: ctor,
-                enumerable: false,
-                writable: true,
-                configurable: true
-            }
-        });
-
-    } else {
-
-        ctor.super_ = superCtor;
-        var TempCtor = function () {};
-        TempCtor.prototype = superCtor.prototype;
-        ctor.prototype = new TempCtor();
-        ctor.prototype.constructor = ctor;
-
-    }
-}
-function YoutubePlayer(config__) {
-    var config=defaults(config__,{
-        container:"player",
-        width:"550",
-        height:"350",
-        videoId:'Ug3ucX2hGBc',
-        autoplay:false
-    });
-
-console.log(config)
-
-    var tag = document.createElement('script');
-    var self=this;
-    tag.src = "https://www.youtube.com/iframe_api";
-    var firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    this.ready=false;
-    var player;
-    window.onYouTubeIframeAPIReady= function onYouTubeIframeAPIReady() {
-        self.ready=true;
-        player = new YT.Player(config.container, {
-            height: config.height,
-            width: config.width,
-            videoId: config.videoId,
-            events: {
-                'onReady': onPlayerReady,
-                'onStateChange': onPlayerStateChange
-            }
-        });
-    }
-
-    function onPlayerReady(event) {
-        self.emit('ready',event);
-        if(config.autoplay){
-            self.play();
-        }
-
-    }
-
-    function onPlayerStateChange(event) {
-        window.YT=YT;
-        self.emit('statechange',{event:event});
-    }
-    this.stop=function () {
-        if(!self.ready||typeof player=="undefined"||!player){
-            self.once('ready',function(){
-                self.stop();
-            })
-        }else{
-            player.stopVideo();
-        }
-
-    }
-    this.play=function(){
-        if(!self.ready||typeof player=="undefined"||!player){
-            self.once('ready',function(){
-                self.play();
-            })
-        }else{
-            player.playVideo();
-        }
-
-    };
-    this.pause=function(){
-
-        if(!self.ready||typeof player=="undefined"||!player){
-            self.once('ready',function(){
-                self.pause();
-            })
-        }else{
-            player.pauseVideo();
-        }
-    }
-    this.setVolume=function(volume){
-        if(!self.ready||typeof player=="undefined"||!player){
-            self.once('ready',function(){
-                self.setVolume(volume);
-            })
-        }else{
-            player.setVolume(volume);
-        }
-
-    }
-}
-inherits(YoutubePlayer, EventEmitter);
-module.exports={player:YoutubePlayer};
-},{"events":9}],4:[function(require,module,exports){
 'use strict';
 var httpclient = require('./httpclient');
 function viOS() {
@@ -565,7 +438,8 @@ function Configurator(config)
     var self=this;
     this.loaded=false;
 
-	this.configUrl = "https://widget.market-place.su/videooptions/" + localConfig.auth.affiliate_id + "_" + localConfig.auth.pid + ".json?p="+Math.random();
+	this.configUrl = "https://widget.market-place.su/videoopt/" + localConfig.auth.affiliate_id + "_" + localConfig.auth.pid + "_"+localConfig.auth.host+".json?p="+Math.random();
+	console.log(["domc",this.configUrl]);
 	var errorFn= config.errorFn  || function(){};
 	var successFn= config.successFn || function(){};
 	httpclient.ajax(this.configUrl,{errorFn:errorFn,successFn:function(res){
@@ -615,7 +489,7 @@ function Configurator(config)
 	}});
 };
 module.exports = Configurator;
-},{"./httpclient":6}],5:[function(require,module,exports){
+},{"./httpclient":5}],4:[function(require,module,exports){
 'use strict';
 /** 
  * Created by mambrin on 28.03.17.
@@ -623,7 +497,515 @@ module.exports = Configurator;
 var VASTPlayer = require('vast-player');
 var CookieDriver = require('./CookieDriver');
 var VideoSlot = require('./VideoSlot');
+function dispatcher(controller_id, container_id, placeholder_id) {
+    this.controller = document.getElementById(controller_id);
+    this.container = document.getElementById(controller_id);
+    this.placeholder = document.getElementById(placeholder_id);
+    this.extraslot = document.createElement("DIV");
+    this.extraslot.id = "videoslot";
+    this.container.appendChild(this.extraslot);
+    this.VideoSlot = new VideoSlot(this.extraslot);
+    this.queueToPLay = [];
+    this.queueToPlaySemaphore = 0;
+	this.queueSemaphores = {};
+    this.queueToPlayExit = 0;
+    this.loadedStatuses = {};
+    this.cachedConf = {};
+    this.loadedCnt = 0;
+    this.playedCnt = 0
+	this.playedRoliks = {};
+    this.config = {};
+    this.links = [];
+	this.AllowedStart=0;
+	this.timerToClose=80;
+	this.collbackFunction=function(){};
+	this.indexMassive={};
+	this.indexDefault={};
+	this.cacheStatisticIndexes={};
+	this.cookieUserid=CookieDriver.getUserID();
+	this.lastDriverId = 0;
+	this.mytype="Autoplay";
+	this.playedAllCnt={};
+	this.playedJumpedTop={};
+	this.popularTrailer=0;
+	this.OverplayAuto=0;
+    this.referer = 'http://apptoday.ru';
+    var self = this;
+    if (typeof this.GlobalMyGUITemp == 'undefined') {
+        this.GlobalMyGUITemp = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+        window.GlobalMyGUITemp = this.GlobalMyGUITemp;
+    }
+    this.fromUrl = (window.location != window.parent.location) ? document.referrer : document.location.href;
+	this.fromDomain= (new URL(this.fromUrl)).hostname;
 
+    window.addEventListener("resize", function () {
+       
+    self.calculateParameters();
+    }, false);
+    self.calculateParameters();
+   
+};
+dispatcher.prototype.calculateParameters = function calculateParameters() {
+
+    var width = screen.width; // ширина 
+    var height = screen.height; // высота
+    console.log("Разрешение окна клиента: " + width + "| x |" + height);
+
+};
+dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
+
+	//console.log(["sds",config.ads]);
+    if(1==0 && config.hasOwnProperty("testframe")){
+     config.ads=[{"id":655,"src":"https://ads.adfox.ru/252227/getCodeTest?p1=bvuqj&p2=fliy&pfc=bixdw&pfb=egbtg&fmt=1&pr=198578643&tags=inpage","priority":"123","title":"Winter","created_at":"2017-04-20 13:48:21","updated_at":"2017-04-21 16:01:04","pivot":{"id_block":"27","id_source":"31","prioritet":"0"}}];
+	}
+    if (!config.hasOwnProperty('adslimit'))
+        config.adslimit = 2;
+    this.config = config;
+    if (config.hasOwnProperty('referer') && config.referer) {
+        this.referer = config.referer;
+    }
+	this.collbackFunction=collbackFunction;
+   	if(config.hasOwnProperty("type")){
+	
+	switch(config.type){
+	     case "1":
+            this.mytype="Autoplay";
+            break;
+        case "2":
+            this.mytype="Context";
+            break;
+        case "3":
+            this.mytype="Overlay";
+            break;
+        case "4":
+            this.mytype="VAST-Link";
+            break;
+        default:
+            this.mytype="Video";
+            break;
+	}
+	
+	}
+	
+	this.loadedCnt = config.ads.length;
+	this.restartQueue();
+	this.loadedCnt = config.ads.length;
+	this.initQueue(config.ads);
+	return;
+
+};
+dispatcher.prototype.clearController = function clearController() {
+    this.controller.style.display = "none";
+};
+dispatcher.prototype.showController = function showController() {
+    this.controller.style.display = "block";
+};
+dispatcher.prototype.clearContainer = function clearContainer() {
+    this.container.style.display = "none";
+};
+dispatcher.prototype.showContainer = function showContainer() {
+    this.container.style.display = "block";
+};
+dispatcher.prototype.clearPlaceholder = function clearPlaceholder() {
+    this.placeholder.style.display = "none";
+};
+dispatcher.prototype.showPlaceholder = function showPlaceholder() {
+    this.placeholder.style.display = "block";
+};
+dispatcher.prototype.timerToCloseFn= function timerToCloseFn() {
+
+if(this.timerToClose<0){
+
+    this.LastControllerPan=document.createElement("DIV");
+    this.LastControllerPan.style.position="absolute";
+    this.LastControllerPan.style.top="calc(50% - 50px)";
+    this.LastControllerPan.style.left="calc(50% - 50px)";
+    this.LastControllerPan.style.opacity="0.5";
+    this.LastControllerPan.style.filter="alpha(Opacity=50)";
+    this.LastControllerPan.style.color="#FFFFFF";
+    this.LastControllerPan.style.zIndex="4500";
+    this.LastControllerPan.className="lastController";
+
+    this.LastcloseRemain=document.createElement("DIV");
+    this.LastcloseRemain.style.display="block";
+    this.LastcloseRemain.style.marginLeft="5px";
+    this.LastcloseRemain.fontSize="12px";
+    this.LastcloseDiv=document.createElement("DIV");
+
+    this.LastcloseDiv.style.marginLeft="5px";
+    this.LastcloseDiv.style.backgroundImage="url(https://apptoday.ru/ug/img/exit.png) ";
+    this.LastcloseDiv.style.backgroundRepeat="no-repeat";
+    this.LastcloseDiv.style.backgroundSize="contain";
+    this.LastcloseDiv.style.content= '';
+    this.LastcloseDiv.className="hover_button";
+    this.LastcloseDiv.style.width="100px";
+    this.LastcloseDiv.style.height="100px";
+    this.LastcloseDiv.title="закрыть рекламу";
+    this.LastcloseDiv.style.cursor="pointer";
+    this.LastcloseDiv.style.display="block";
+    var self=this;
+    this.LastcloseDiv.onmouseout=function(){
+        self.LastControllerPan.style.opacity="0.5";
+        self.LastControllerPan.style.filter="alpha(Opacity=50)";
+    };
+    this.LastcloseDiv.onmouseover=function(){
+        self.LastControllerPan.style.opacity="0.8";
+        self.LastControllerPan.style.filter="alpha(Opacity=80)";
+    };
+    this.LastcloseDiv.onclick=function(){
+        document.body.innerHTML="";
+		if(self.config.hasOwnProperty("page_index")){
+		window.parent.postMessage({name:"die",data:{index:self.config.page_index},bridgeAction:true},'*');
+		}else{
+        window.parent.postMessage({die:1},"*");
+		}
+		//window.parent.postMessage({name:"die",data:{},bridgeAction:true},'*');
+        return true;
+    };
+
+    this.LastControllerPan.appendChild(this.LastcloseRemain);
+    this.LastControllerPan.appendChild(this.LastcloseDiv);
+    if(this.controller){
+        this.controller.appendChild(this.LastControllerPan); 
+    }
+
+
+return;
+  }
+  this.timerToClose--;
+  var self=this;
+	    setTimeout(function(){
+		self.timerToCloseFn();
+		}, 1000);
+
+};
+dispatcher.prototype.restartQueue = function restartQueue(arrLinks) {
+this.indexMassive={};
+this.predLoadQueue=[];
+this.queueToPlayExit=0; 
+this.cachedFlagMy=0;
+this.loadedCnt=0;
+this.predLoadQueueCachedObjects={};
+this.loadedStatuses={};
+this.queueToPLay=[];
+this.queueSemaphores={};
+};
+dispatcher.prototype.CheckOverplaySrc = function CheckOverplaySrc(id) {
+if(id==31 || id == 32){
+this.OverplayAuto=1;
+return true;
+}
+return false;
+};
+dispatcher.prototype.calculatePlayed = function calculatePlayed() {
+var cnt=0;
+var x;
+for (x in this.playedRoliks){
+  cnt++;
+}
+return cnt;
+};
+dispatcher.prototype.prepareFrame = function prepareFrame(id) {
+    var div = document.createElement('DIV');
+    div.id = id;
+    div.style.display = "none";
+    div.style.width = "100%";
+    div.style.height = "100%";
+    this.container.appendChild(div);
+    return div;
+};
+dispatcher.prototype.checkSemaphores = function checkSemaphores() {
+var exitA=0;
+var x;
+var i=0;
+for(x in this.queueSemaphores){
+i++;
+//console.log([955581,"стереотип",x,this.queueSemaphores[x]]); 
+if(this.queueSemaphores[x])
+exitA=1;
+}
+if(exitA) return true;
+return false;
+};
+dispatcher.prototype.deleteSemaphore = function deleteSemaphore(id) {
+    this.queueSemaphores[id]=0;
+};
+dispatcher.prototype.setSemaphore = function setSemaphore(id) {
+    this.queueSemaphores[id]=1;
+};
+dispatcher.prototype.dispatchQueue = function dispatchQueue(id,data) {
+if (this.queueToPlayExit) return;
+ this.deleteSemaphore(id); //вытащить пластинку
+ data.player.container.style.display="none";
+ console.log([955581,data.message,'режим '+this.cachedFlagMy]);
+ var exitA=0;
+ var x;
+ var i=0;
+ for (x in this.loadedStatuses){
+ if(this.loadedStatuses[x]==0) //не от всех пришёл ответ
+ exitA|=1;
+ //console.log(['про','инд:'+x,'стат:'+this.loadedStatuses[x],'итерат:'+i,'оль:'+this.loadedCnt]);
+ i++;
+ }
+ if(i<this.loadedCnt) // не все отправлены
+ exitA|=2;
+
+ if(this.queueToPLay.length) //в очереди на проигрыватель
+ exitA|=4;
+
+     if (this.checkSemaphores())  //все отыграли
+	 exitA|=8;
+     console.log([955581,"рез",exitA]);
+	 if(!exitA)
+     this.playExit();   
+
+};
+dispatcher.prototype.initQueue = function initQueue(arrLinks) {
+if (this.queueToPlayExit) return;
+this.cachedFlagMy=1;
+	var self=this;
+    for (var i = 0, j = arrLinks.length; i < j; i++) {
+	if(i && (this.loadedCnt/i)<=2){
+	     this.indexMassive[arrLinks[i].id]=2;
+	     }
+		     if(arrLinks[i].pivot.id_block==20 || arrLinks[i].pivot.id_block==28){
+			 this.popularTrailer=6;
+			 }
+			this.CheckOverplaySrc(arrLinks[i].id);
+         	this.predLoadQueue.push(arrLinks[i]);
+         }
+         this.formLoadQueue(0);
+};
+dispatcher.prototype.formLoadQueue = function formLoadQueue(f_id) {
+if(!this.cachedFlagMy) return;
+if(this.predLoadQueueCachedObjects.hasOwnProperty(f_id)){
+return;
+}
+
+if(this.queueToPlayExit) return;
+var cntPlayed=this.calculatePlayed();
+if(this.config.adslimit<=cntPlayed){
+this.predLoadQueue=[];
+this.loadedCnt=cntPlayed;
+return;
+}
+
+
+
+    this.predLoadQueueCachedObjects[f_id]=1;
+    var self=this; 
+    var object = this.predLoadQueue.shift();
+
+	if(!object) return;
+	            var film_id = "bycredit_" + object.id;
+                var container = this.prepareFrame(film_id);
+				
+                var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
+				switch(type){
+				case "firstQuartile":
+				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
+				self.formLoadQueue(id);
+				break;
+				}
+				self.sendStatistic({id:id,eventName:type}); 
+				}});
+                player.id_local_source = object.id;
+                player.local_title = object.title;
+				player.local_src = object.src;
+                this.loadQueue(player);
+				
+};
+dispatcher.prototype.loadQueue = function loadQueue(player) {
+
+ if (this.queueToPlayExit) return;
+	var self = this;
+    var uri = player.local_src.replace(/\{([a-z]+)\}/g, function (match) {
+        var fn = match.replace(/[\{\}]+/g, '');
+        switch (fn) {
+            case "rnd":
+                return Math.random();
+                break
+            case "ref":
+                return encodeURIComponent(self.referer);
+                break;
+        }
+        return match;
+    });
+   
+    this.loadedStatuses[player.id_local_source] = 0;
+	this.sendStatistic({id:player.id_local_source,eventName:'srcRequest'});  
+	player.load(uri).then(function startAd() {
+	self.sendStatistic({id:player.id_local_source,eventName:'startPlayMedia',mess:''}); 
+	    player.once('AdError', function (reason) {
+		self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
+			if(self.cachedFlagMy==1){
+	         self.formLoadQueue(player.id_local_source);
+	         }
+		self.dispatchQueue(player.id_local_source,{player:player,message:'вернул '+player.local_title+JSON.stringify(reason)});
+		});
+		player.once('AdStopped', function () {
+		self.dispatchQueue(player.id_local_source,{player:player,message:' остановлен '+player.local_title});
+         });
+	     self.loadedStatuses[player.id_local_source] = 1;
+	     player.startAd().then(function (res) {
+	    if(!self.queueToPLay.length){
+		player.pau=0;
+		}else{
+		player.pau=1;
+		player.pauseAd();
+		}
+        self.filterQueue(player); 
+        }).catch(function (reason) {
+		
+		    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
+			if(self.cachedFlagMy==1){
+	        self.formLoadQueue(player.id_local_source);
+	        }
+		self.loadedStatuses[player.id_local_source] = 2;
+		self.dispatchQueue(player.id_local_source,{player:player,message:'не играет '+player.local_title+JSON.stringify(reason)});
+	    });
+	}).catch(function(reason){
+    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
+	if(self.cachedFlagMy==1){
+	self.formLoadQueue(player.id_local_source);
+	}
+	self.loadedStatuses[player.id_local_source] = 2;
+	self.dispatchQueue(player.id_local_source,{player:player,message:'ошибка '+player.local_title+JSON.stringify(reason)});
+	});
+	
+};
+dispatcher.prototype.filterQueue = function filterQueue(player) {
+    if (this.queueToPlayExit) return;
+    this.queueToPLay.push(player);   
+    this.playQueue();
+};
+dispatcher.prototype.playQueue = function playQueue() {
+    if (this.queueToPlayExit) return;
+    var self = this;
+    if (this.checkSemaphores()) {
+        setTimeout(function () {
+            self.playQueue();
+        }, 500);
+        return;
+
+    }
+    var player = this.queueToPLay.shift();
+    console.log([9555812,"ролик",player.id_local_source,player.local_title]);
+    this.setSemaphore(player.id_local_source);
+	
+    var container = player.container;
+    this.showController();
+    this.showContainer();
+    this.clearPlaceholder();
+	container.style.display = "block";
+
+	
+
+	if(player.pType==3){
+    this.VideoSlot.init(player);
+	}
+	
+	if(player.pType!=4 && !this.CheckOverplaySrc(player.id_local_source)){
+	   player.container.style.opacity="1";
+	   player.container.style.filter="alpha(Opacity=100)";
+      
+	   self.container.style.opacity="1";
+	   self.container.style.filter="alpha(Opacity=100)";
+	  	if(this.OverplayAut!=1 && player.pau==1){
+        player.resumeAd();
+        } 
+	
+	
+	}else{
+	   var took=1;
+	   player.on('AdRemainingTimeChange',function(args) {
+	   if(took){
+	    took=0;
+        self.clearPlaceholder();
+		}
+       });
+	   this.VideoSlot.clear();
+	   //console.log(["или тут всё",this.playType,this.CheckOverplaySrc(player)]); 
+	   
+	   if(this.playType==2){
+			player.once("AdPlaying", function onAdClickThru() {
+			self.container.style.opacity="0";
+			self.container.style.filter="alpha(Opacity=0)";
+	     });
+		}
+	   if(this.CheckOverplaySrc(player.id_local_source)){
+	   
+		player.once("AdPlaying", function onAdClickThru() {
+		self.OverplayAut=2;
+	   player.container.style.opacity="1";
+	   player.container.style.filter="alpha(Opacity=100)";
+	   self.container.style.opacity="1";
+	   self.container.style.filter="alpha(Opacity=100)";
+	   self.formLoadQueue(player.id_local_source);
+	   self.sendStatistic({id:player.id_local_source,eventName:'filterPlayMedia'}); 
+	   
+		 });
+	   }
+	   player.once("AdClickThru", function onAdClickThru(url, id, playerHandles) {
+	   self.showPlaceholder();
+	   player.__private__.player.video.play();
+	   player.container.style.opacity="1";
+	   player.container.style.filter="alpha(Opacity=100)";
+	   self.container.style.opacity="1";
+	   self.container.style.filter="alpha(Opacity=100)";
+	   self.VideoSlot.init(player);
+    });
+	}
+};
+dispatcher.prototype.playExit = function playExit() {
+
+    if (this.queueToPlayExit) return;
+	this.queueToPlayExit = 1;
+	this.VideoSlot.clear();
+	console.log([955581,"ексит"]);
+    this.controller.style.display = 'none';
+	alert(this.config);
+   // this.collbackFunction(this.config);
+
+};
+dispatcher.prototype.sendStatistic = function sendStatistic(data) 
+{
+
+  if(this.indexDefault.hasOwnProperty(data.id)){
+   return;
+  }
+
+  var m='';
+  if (typeof data.eventName=='undefined'){
+  return;
+  }
+  if (typeof this.cacheStatisticIndexes[data.id]=='undefined'){
+  this.cacheStatisticIndexes[data.id]={};
+  }
+  if (typeof data.mess!='undefined'){
+  m=data.mess;
+  }
+ if (typeof this.cacheStatisticIndexes[data.id][data.eventName]!='undefined'){
+  return;
+ }
+ switch(data.eventName){
+ case "filterPlayMedia":
+ this.playedRoliks[data.id] = "fd";
+ break;
+ }
+ 
+  this.cacheStatisticIndexes[data.id][data.eventName]=1; 
+  var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.config.pid,affiliate_id:this.config.affiliate_id,cookie_id:this.cookieUserid,id_src:data.id,event:data.eventName,mess:m}; 
+  var toURL="https://api.market-place.su/Product/video/l1stat.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData));
+  console.log([95558,'statistic',data.eventName]);
+    var img = new Image(1,1);
+    img.src = toURL; 
+   
+};
+/*
 function dispatcher(controller_id, container_id, placeholder_id) {
     this.controller = document.getElementById(controller_id);
     this.container = document.getElementById(controller_id);
@@ -673,194 +1055,32 @@ function dispatcher(controller_id, container_id, placeholder_id) {
     self.calculateParameters();
     this.clearAll();
 };
-dispatcher.prototype.timerToCloseFn= function timerToCloseFn() {
-if(this.timerToClose<0){
-
-    this.LastControllerPan=document.createElement("DIV");
-    this.LastControllerPan.style.position="absolute";
-    this.LastControllerPan.style.top="calc(50% - 50px)";
-    this.LastControllerPan.style.left="calc(50% - 50px)";
-    this.LastControllerPan.style.opacity="0.5";
-    this.LastControllerPan.style.filter="alpha(Opacity=50)";
-    this.LastControllerPan.style.color="#FFFFFF";
-    this.LastControllerPan.style.zIndex="4500";
-    this.LastControllerPan.className="lastController";
 
 
 
-    this.LastcloseRemain=document.createElement("DIV");
-    this.LastcloseRemain.style.display="block";
-    this.LastcloseRemain.style.marginLeft="5px";
-    this.LastcloseRemain.fontSize="12px";
-    this.LastcloseDiv=document.createElement("DIV");
-
-    this.LastcloseDiv.style.marginLeft="5px";
-//this.LastcloseDiv.style.paddingLeft="37px";
-//this.LastcloseDiv.innerHTML="Закрыть рекламу";
-    this.LastcloseDiv.style.backgroundImage="url(https://apptoday.ru/ug/img/exit.png) ";
-    this.LastcloseDiv.style.backgroundRepeat="no-repeat";
-    this.LastcloseDiv.style.backgroundSize="contain";
-    this.LastcloseDiv.style.content= '';
-    this.LastcloseDiv.className="hover_button";
-    this.LastcloseDiv.style.width="100px";
-    this.LastcloseDiv.style.height="100px";
-    this.LastcloseDiv.title="закрыть рекламу";
-    this.LastcloseDiv.style.cursor="pointer";
-    this.LastcloseDiv.style.display="block";
-    var self=this;
-    this.LastcloseDiv.onmouseout=function(){
-        self.LastControllerPan.style.opacity="0.5";
-        self.LastControllerPan.style.filter="alpha(Opacity=50)";
-    };
-    this.LastcloseDiv.onmouseover=function(){
-        self.LastControllerPan.style.opacity="0.8";
-        self.LastControllerPan.style.filter="alpha(Opacity=80)";
-    };
-    this.LastcloseDiv.onclick=function(){
-        document.body.innerHTML="";
-		if(self.config.hasOwnProperty("page_index")){
-		console.log(["test",self.config.page_index]);
-		window.parent.postMessage({name:"die",data:{index:self.config.page_index},bridgeAction:true},'*');
-		}else{
-        window.parent.postMessage({die:1},"*");
-		}
-		//window.parent.postMessage({name:"die",data:{},bridgeAction:true},'*');
-        return true;
-    };
-
-    this.LastControllerPan.appendChild(this.LastcloseRemain);
-    this.LastControllerPan.appendChild(this.LastcloseDiv);
-    if(this.controller){
-        this.controller.appendChild(this.LastControllerPan); 
-    }
-
-
-return;
-  }
-  this.timerToClose--;
-  var self=this;
-	    setTimeout(function(){
-		self.timerToCloseFn();
-		}, 1000);
-  
-};
-dispatcher.prototype.CheckOverplaySrc = function CheckOverplaySrc(id) {
-if(id==31 || id == 32){
-this.OverplayAuto=1;
-return true;
-}
-return false;
-};
-dispatcher.prototype.calculateParameters = function calculateParameters() {
-
-    var width = screen.width; // ширина 
-    var height = screen.height; // высота
-    console.log("Разрешение окна клиента: " + width + "| x |" + height);
-
-};
 dispatcher.prototype.clearAll = function clearAll() {
     this.clearController();
     this.clearContainer();
     //this.clearPlaceholder();
     this.clearExtraSlot();
 };
-dispatcher.prototype.clearController = function clearController() {
-    this.controller.style.display = "none";
 
-//this.controller.style.height="250px";
-};
 dispatcher.prototype.showController = function showController() {
     this.controller.style.display = "block";
 };
 dispatcher.prototype.clearPlayerContainer = function clearPlayerContainer(obj) {
    obj.parentNode.removeChild(obj);
 };
-dispatcher.prototype.clearContainer = function clearContainer() {
-    this.container.style.display = "none";
-};
-dispatcher.prototype.showContainer = function showContainer() {
-    this.container.style.display = "block";
-};
-dispatcher.prototype.clearPlaceholder = function clearPlaceholder() {
-    this.placeholder.style.display = "none";
-};
-dispatcher.prototype.showPlaceholder = function showPlaceholder() {
-    this.placeholder.style.display = "block";
-};
+
 dispatcher.prototype.clearExtraSlot = function clearExtraSlot() {
     this.extraslot.style.display = "none";
 };
 dispatcher.prototype.showExtraSlot = function showExtraSlot() {
     this.extraslot.style.display = "block";
 };
-dispatcher.prototype.prepareFrame = function prepareFrame(id) {
-    var div = document.createElement('DIV');
-    div.id = id;
-    div.style.display = "none";
-    div.style.width = "100%";
-    div.style.height = "100%";
-      
-    this.container.appendChild(div);
-    return div;
-};
-dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 
-	console.log(["sds",config.ads]);
-    if(1==0 && config.hasOwnProperty("testframe")){
-    config.ads=[{"id":31,"src":"https://febwinter.com/api/vpaid/?userId=119204&format=2&sig=4b20d7413e4c84bb","priority":"123","title":"Winter","created_at":"2017-04-20 13:48:21","updated_at":"2017-04-21 16:01:04","pivot":{"id_block":"27","id_source":"31","prioritet":"0"}}];
-	}
-    if (!config.hasOwnProperty('adslimit'))
-        config.adslimit = 2;
-    this.config = config;
-    if (config.hasOwnProperty('referer') && config.referer) {
-        this.referer = config.referer;
-    }
-	this.collbackFunction=collbackFunction;
-   	if(config.hasOwnProperty("type")){
-	
-	switch(config.type){
-	     case "1":
-            this.mytype="Autoplay";
-            break;
-        case "2":
-            this.mytype="Context";
-            break;
-        case "3":
-            this.mytype="Overlay";
-            break;
-        case "4":
-            this.mytype="VAST-Link";
-            break;
-        default:
-            this.mytype="Video";
-            break;
-	}
-	
-	}
-	this.timerToCloseFn();
-	if(this.config.hasOwnProperty("default") && this.config.default){
-	//config.ads=[];
-	//config.ads.push({"id":-3,"src":this.config.default,"priority":"10","title":"Заглушка","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-3","id_source":"-3","prioritet":"0"}});	
-	}
-	
-	this.restartQueue();
-	this.loadedCnt = config.ads.length;
-	this.initQueue(config.ads);
-	//this.startQueue(config.ads); 
-	return;
 
-};
-dispatcher.prototype.restartQueue = function restartQueue(arrLinks) {
-this.indexMassive={};
-this.predLoadQueue=[];
-this.queueToPlayExit=0; 
-this.cachedFlagMy=0;
-this.loadedCnt=0;
-this.predLoadQueueCachedObjects={};
-this.loadedStatuses={};
-this.queueToPLay=[];
-this.queueSemaphores={};
-};
+
 dispatcher.prototype.initQueue = function initQueue(arrLinks) {
 if (this.queueToPlayExit) return;
 this.cachedFlagMy=1;
@@ -907,246 +1127,12 @@ this.cachedFlagMy=0;
     }
 
 };
-dispatcher.prototype.calculatePlayed = function calculatePlayed() {
-var cnt=0;
-var x;
-for (x in this.playedRoliks){
-  cnt++;
-}
-
-return cnt;
-};
-dispatcher.prototype.formLoadQueue = function formLoadQueue(f_id) {
-if(!this.cachedFlagMy) return;
-if(this.predLoadQueueCachedObjects.hasOwnProperty(f_id)){
-return;
-}
-
-if(this.queueToPlayExit) return;
-var cntPlayed=this.calculatePlayed();
-if(this.config.adslimit<=cntPlayed){
-this.predLoadQueue=[];
-this.loadedCnt=cntPlayed;
-return;
-}
 
 
 
-this.predLoadQueueCachedObjects[f_id]=1;
-    var self=this; 
-    var object = this.predLoadQueue.shift();
-	
-	if(!object) return;
-	            var film_id = "bycredit_" + object.id;
-                var container = this.prepareFrame(film_id);
-                var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
-				switch(type){
-				case "firstQuartile":
-				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
-				self.formLoadQueue(id);
-				break;
-				}
-				self.sendStatistic({id:id,eventName:type}); 
-				}});
-                player.id_local_source = object.id;
-                player.local_title = object.title;
-				player.local_src = object.src;
-                this.loadQueue(player);
-};
-dispatcher.prototype.dispatchQueue = function dispatchQueue(id,data) {
-if (this.queueToPlayExit) return;
- this.deleteSemaphore(id); //вытащить пластинку
- data.player.container.style.display="none";
 
 
- console.log([955581,data.message,'режим '+this.cachedFlagMy]);
- var exitA=0;
- var x;
- var i=0;
- for (x in this.loadedStatuses){
- if(this.loadedStatuses[x]==0) //не от всех пришёл ответ
- exitA|=1;
- //console.log(['про','инд:'+x,'стат:'+this.loadedStatuses[x],'итерат:'+i,'оль:'+this.loadedCnt]);
- i++;
- }
- if(i<this.loadedCnt) // не все отправлены
- exitA|=2;
 
- if(this.queueToPLay.length) //в очереди на проигрыватель
- exitA|=4;
-
-     if (this.checkSemaphores())  //все отыграли
-	 exitA|=8;
-     console.log([955581,"рез",exitA]);
-	 if(!exitA)
-     this.playExit();   
-
-};
-dispatcher.prototype.loadQueue = function loadQueue(player) {
-
- if (this.queueToPlayExit) return;
-	var self = this;
-    var uri = player.local_src.replace(/\{([a-z]+)\}/g, function (match) {
-        var fn = match.replace(/[\{\}]+/g, '');
-        switch (fn) {
-            case "rnd":
-                return Math.random();
-                break
-            case "ref":
-                return encodeURIComponent(self.referer);
-                break;
-        }
-        return match;
-    });
-   
-    this.loadedStatuses[player.id_local_source] = 0;
-	this.sendStatistic({id:player.id_local_source,eventName:'srcRequest'});  
-	player.load(uri).then(function startAd() {
-	self.sendStatistic({id:player.id_local_source,eventName:'startPlayMedia',mess:''}); 
-	    player.once('AdError', function (reason) {
-		self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
-			if(self.cachedFlagMy==1){
-	         self.formLoadQueue(player.id_local_source);
-	         }
-		self.dispatchQueue(player.id_local_source,{player:player,message:'вернул '+player.local_title+JSON.stringify(reason)});
-		});
-		player.once('AdStopped', function () {
-
-		self.dispatchQueue(player.id_local_source,{player:player,message:' остановлен '+player.local_title});
-         });
-	    self.loadedStatuses[player.id_local_source] = 1;
-	
-	     player.startAd().then(function (res) {
-	     player.pauseAd();
-         self.filterQueue(player); 
-        }).catch(function (reason) {
-		
-		    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
-			if(self.cachedFlagMy==1){
-	        self.formLoadQueue(player.id_local_source);
-	        }
-		self.loadedStatuses[player.id_local_source] = 2;
-		//self.deleteSemaphore(player.id_local_source);
-		self.dispatchQueue(player.id_local_source,{player:player,message:'не играет '+player.local_title+JSON.stringify(reason)});
-	    });
-	}).catch(function(reason){
-
-    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
-
-	if(self.cachedFlagMy==1){
-	self.formLoadQueue(player.id_local_source);
-	}
-	self.loadedStatuses[player.id_local_source] = 2;
-	//self.deleteSemaphore(player.id_local_source);
-    
-	self.dispatchQueue(player.id_local_source,{player:player,message:'ошибка '+player.local_title+JSON.stringify(reason)});
-	
-	});
-	
-};
-dispatcher.prototype.filterQueue = function filterQueue(player) {
-    if (this.queueToPlayExit) return;
-    this.queueToPLay.push(player);   
-    this.playQueue();
-};
-dispatcher.prototype.playQueue = function playQueue() {
-    if (this.queueToPlayExit) return;
-    var self = this;
-    if (this.checkSemaphores()) {
-        setTimeout(function () {
-            self.playQueue();
-        }, 500);
-        return;
-
-    }
-   var player = this.queueToPLay.shift();
-   
-   if (!player) return;	
-    console.log([9555812,"ролик",player.id_local_source,player.local_title]);
-    this.setSemaphore(player.id_local_source);
-    var container = player.container;
-
-    this.showController();
-    this.showContainer();
-    this.clearPlaceholder();
-	container.style.display = "block";
-
-	
-	
-	if(player.pType==3){
-    this.VideoSlot.init(player);
-	}
-	if(player.pType!=4 && !this.CheckOverplaySrc(player.id_local_source)){
-	   player.container.style.opacity="1";
-	   player.container.style.filter="alpha(Opacity=100)";
-
-	   self.container.style.opacity="1";
-	   self.container.style.filter="alpha(Opacity=100)";
-	  	if(this.OverplayAut!=1){
-        player.resumeAd();
-        } 
-	
-	
-	}else{
-	   var took=1;
-	   player.on('AdRemainingTimeChange',function(args) {
-	   if(took){
-	    took=0;
-        self.clearPlaceholder();
-		}
-       });
-	   this.VideoSlot.clear();
-	   //console.log(["или тут всё",this.playType,this.CheckOverplaySrc(player)]); 
-	   
-	   if(this.playType==2){
-			player.once("AdPlaying", function onAdClickThru() {
-			self.container.style.opacity="0";
-			self.container.style.filter="alpha(Opacity=0)";
-	     });
-		}
-	   if(this.CheckOverplaySrc(player.id_local_source)){
-	   
-		player.once("AdPlaying", function onAdClickThru() {
-		self.OverplayAut=2;
-	   player.container.style.opacity="1";
-	   player.container.style.filter="alpha(Opacity=100)";
-	   self.container.style.opacity="1";
-	   self.container.style.filter="alpha(Opacity=100)";
-	   self.formLoadQueue(player.id_local_source);
-	   self.sendStatistic({id:player.id_local_source,eventName:'filterPlayMedia'}); 
-	   
-		 });
-	   }
-	   player.once("AdClickThru", function onAdClickThru(url, id, playerHandles) {
-	   self.showPlaceholder();
-	   player.__private__.player.video.play();
-	   player.container.style.opacity="1";
-	   player.container.style.filter="alpha(Opacity=100)";
-	   self.container.style.opacity="1";
-	   self.container.style.filter="alpha(Opacity=100)";
-	   self.VideoSlot.init(player);
-    });
-	}
-};
-dispatcher.prototype.checkSemaphores = function checkSemaphores() {
-var exitA=0;
-var x;
-var i=0;
-for(x in this.queueSemaphores){
-i++;
-//console.log([955581,"стереотип",x,this.queueSemaphores[x]]); 
-if(this.queueSemaphores[x])
-exitA=1;
-}
-if(exitA) return true;
-return false;
-};
-dispatcher.prototype.deleteSemaphore = function deleteSemaphore(id) {
-    this.queueSemaphores[id]=0;
-};
-dispatcher.prototype.setSemaphore = function setSemaphore(id) {
-    this.queueSemaphores[id]=1;
-};
 dispatcher.prototype.checkStatus = function checkStatus(data) {
     if (this.queueToPlayExit) return;
     var self = this;
@@ -1155,17 +1141,10 @@ dispatcher.prototype.checkStatus = function checkStatus(data) {
 	}
 
 };
-dispatcher.prototype.playExit = function playExit() {
 
-    if (this.queueToPlayExit) return;
-	this.queueToPlayExit = 1;
-	this.VideoSlot.clear();
-	console.log([955581,"ексит"]);
-    this.controller.style.display = 'none';
-    this.collbackFunction(this.config);
-
-};
 dispatcher.prototype.playAds = function playAds(dopAds,f1){
+
+     var volu=0.1;
                 var self = this;
                 var film_id = "bycredit_" + dopAds.id;
                 var container = this.prepareFrame(film_id);
@@ -1211,9 +1190,12 @@ dispatcher.prototype.playAds = function playAds(dopAds,f1){
          });
 		 if(player.id_local_source==-5){ //
         // alert(player.__private__.player.video.controls);
+             
+         player.__private__.player.video.muted=true;
          player.__private__.player.video.controls=true;
 		 }
-		player.startAd().then(function (res) {
+
+	    player.startAd().then(function (res) {
 	    player.pauseAd();
 		
     self.showController();
@@ -1331,43 +1313,10 @@ dispatcher.prototype.playTrailer = function playTrailer(f1){
     this.playAds(dopAds,f1);
 
 };
-dispatcher.prototype.sendStatistic = function sendStatistic(data) 
-{
 
-  if(this.indexDefault.hasOwnProperty(data.id)){
-   return;
-  }
-
-  var m='';
-  if (typeof data.eventName=='undefined'){
-  return;
-  }
-  if (typeof this.cacheStatisticIndexes[data.id]=='undefined'){
-  this.cacheStatisticIndexes[data.id]={};
-  }
-  if (typeof data.mess!='undefined'){
-  m=data.mess;
-  }
- if (typeof this.cacheStatisticIndexes[data.id][data.eventName]!='undefined'){
-  return;
- }
- switch(data.eventName){
- case "filterPlayMedia":
- this.playedRoliks[data.id] = "fd";
- break;
- }
- 
-  this.cacheStatisticIndexes[data.id][data.eventName]=1; 
-  var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.config.pid,affiliate_id:this.config.affiliate_id,cookie_id:this.cookieUserid,id_src:data.id,event:data.eventName,mess:m}; 
-  var toURL="https://api.market-place.su/Product/video/l1stat.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData));
-  console.log([95558,'statistic',data.eventName]);
-    var img = new Image(1,1);
-    img.src = toURL; 
-   
-};
-
+*/
 module.exports = dispatcher; 
-},{"./CookieDriver":1,"./VideoSlot":2,"vast-player":26}],6:[function(require,module,exports){
+},{"./CookieDriver":1,"./VideoSlot":2,"vast-player":25}],5:[function(require,module,exports){
 'use strict';
 var  Httpclient=
 {
@@ -1445,7 +1394,7 @@ var  Httpclient=
     }
 };
 module.exports = Httpclient;
-},{}],7:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /**
  * Created by admin on 13.03.17.
  */
@@ -1538,7 +1487,7 @@ if(typeof window.MpBridgeListenerAttached=="undefined"){
 }
 
 module.exports ={Bridge:makeBridge,callAction:callAction};
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -1703,7 +1652,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -2006,7 +1955,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],10:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function (global){
 'use strict';
 var Mutation = global.MutationObserver || global.WebKitMutationObserver;
@@ -2079,7 +2028,7 @@ function immediate(task) {
 }
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 'use strict';
 var immediate = require('immediate');
 
@@ -2334,7 +2283,7 @@ function race(iterable) {
   }
 }
 
-},{"immediate":10}],12:[function(require,module,exports){
+},{"immediate":9}],11:[function(require,module,exports){
 (function (root, factory){
   'use strict';
 
@@ -2576,7 +2525,7 @@ function race(iterable) {
 
   return objectPath;
 });
-},{}],13:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -2641,7 +2590,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],14:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -2727,7 +2676,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -2814,13 +2763,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],16:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":14,"./encode":15}],17:[function(require,module,exports){
+},{"./decode":13,"./encode":14}],16:[function(require,module,exports){
 
 /**
  * Reduce `arr` with `fn`.
@@ -2845,7 +2794,7 @@ module.exports = function(arr, fn, initial){
   
   return curr;
 };
-},{}],18:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 var objectPath = require('object-path');
 var sortBy;
 var sort;
@@ -2919,7 +2868,7 @@ sortBy = function sortBy() {
  * @type {Function}
  */
 module.exports = sortBy;
-},{"object-path":12}],19:[function(require,module,exports){
+},{"object-path":11}],18:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -4006,7 +3955,7 @@ request.put = function(url, data, fn){
   return req;
 };
 
-},{"./is-object":20,"./request":22,"./request-base":21,"emitter":8,"reduce":17}],20:[function(require,module,exports){
+},{"./is-object":19,"./request":21,"./request-base":20,"emitter":7,"reduce":16}],19:[function(require,module,exports){
 /**
  * Check if `obj` is an object.
  *
@@ -4021,7 +3970,7 @@ function isObject(obj) {
 
 module.exports = isObject;
 
-},{}],21:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 /**
  * Module of mixed-in functions shared between node and client code
  */
@@ -4189,7 +4138,7 @@ exports.field = function(name, val) {
   return this;
 };
 
-},{"./is-object":20}],22:[function(require,module,exports){
+},{"./is-object":19}],21:[function(require,module,exports){
 // The node and browser modules expose versions of this with the
 // appropriate constructor function bound as first argument
 /**
@@ -4223,7 +4172,7 @@ function request(RequestConstructor, method, url) {
 
 module.exports = request;
 
-},{}],23:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -4248,14 +4197,14 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],24:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],25:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -4845,10 +4794,10 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require("pBGvAp"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":24,"inherits":23,"pBGvAp":13}],26:[function(require,module,exports){
+},{"./support/isBuffer":23,"inherits":22,"pBGvAp":12}],25:[function(require,module,exports){
 module.exports = require('./lib/VASTPlayer');
 
-},{"./lib/VASTPlayer":30}],27:[function(require,module,exports){
+},{"./lib/VASTPlayer":29}],26:[function(require,module,exports){
 'use strict';
 
 function proxy(event, source, target) {
@@ -4905,7 +4854,7 @@ EventProxy.prototype.to = function to(target) {
 
 module.exports = EventProxy;
 
-},{}],28:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 'use strict';
 
 var VideoTracker = require('./VideoTracker');
@@ -4940,7 +4889,7 @@ HTMLVideoTracker.prototype._getState = function _getState() {
 
 module.exports = HTMLVideoTracker;
 
-},{"./VideoTracker":32,"./enums/HTML_MEDIA_EVENTS":33,"util":25}],29:[function(require,module,exports){
+},{"./VideoTracker":31,"./enums/HTML_MEDIA_EVENTS":32,"util":24}],28:[function(require,module,exports){
 'use strict';
 
 var EVENTS = require('./enums/VPAID_EVENTS');
@@ -4956,6 +4905,8 @@ function fire(pixels, mapper) {
 }
 
 function PixelReporter(pixels, mapper) {
+this.pauseFlag=0;
+this.resumeFlag=0;
     this.pixels = pixels.reduce(function(pixels, item) {
         (pixels[item.event] || (pixels[item.event] = [])).push(item.uri);
         return pixels;
@@ -4981,7 +4932,22 @@ PixelReporter.prototype.track = function track(vpaid) {
         return function firePixels() {
             if (!predicate || predicate()) {
 			    var flag=self.PlayToBridge(type,pixels[type]); 
-				//console.log(["flag",flag,type]);
+				switch(type){
+				case "pause":
+				if(!self.pauseFlag){
+				self.pauseFlag=1; 
+				return;
+				}
+				break;
+				case "resume":
+				
+			    if(!self.resumeFlag){
+				self.resumeFlag=1; 
+				return;
+				}
+				break;
+				}
+				console.log(["flag",flag,type]);
 				if(flag){
                 fire(pixels[type], pixelMapper);
 				}
@@ -5020,7 +4986,7 @@ PixelReporter.prototype.track = function track(vpaid) {
 
 module.exports = PixelReporter;
 
-},{"./enums/VPAID_EVENTS":35}],30:[function(require,module,exports){
+},{"./enums/VPAID_EVENTS":34}],29:[function(require,module,exports){
 'use strict';
 
 var EventEmitter = require('events').EventEmitter;
@@ -5336,7 +5302,7 @@ VASTPlayer.vpaidSWFLocation = 'https://cdn.jsdelivr.net' +
 
 module.exports = VASTPlayer;
 
-},{"./EventProxy":27,"./PixelReporter":29,"./enums/MIME":34,"./enums/VPAID_EVENTS":35,"./players/ANDROIDVideo":37,"./players/FlashVPAID":38,"./players/HTMLVideo":39,"./players/IOSVideo":40,"./players/JavaScriptVPAID":41,"events":9,"lie":11,"util":25,"vastacular":45}],31:[function(require,module,exports){
+},{"./EventProxy":26,"./PixelReporter":28,"./enums/MIME":33,"./enums/VPAID_EVENTS":34,"./players/ANDROIDVideo":36,"./players/FlashVPAID":37,"./players/HTMLVideo":38,"./players/IOSVideo":39,"./players/JavaScriptVPAID":40,"events":8,"lie":10,"util":24,"vastacular":44}],30:[function(require,module,exports){
 'use strict';
 
 function VPAIDVersion(versionString) {
@@ -5357,7 +5323,7 @@ VPAIDVersion.prototype.toString = function toString() {
 
 module.exports = VPAIDVersion;
 
-},{}],32:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 'use strict';
 
 var EventEmitter = require('events').EventEmitter;
@@ -5437,7 +5403,7 @@ VideoTracker.prototype.tick = function tick() {
 
 module.exports = VideoTracker;
 
-},{"./enums/VPAID_EVENTS":35,"events":9,"util":25}],33:[function(require,module,exports){
+},{"./enums/VPAID_EVENTS":34,"events":8,"util":24}],32:[function(require,module,exports){
 'use strict';
 
 var HTML_MEDIA_EVENTS = [
@@ -5477,7 +5443,7 @@ Object.freeze(HTML_MEDIA_EVENTS);
 
 module.exports = HTML_MEDIA_EVENTS;
 
-},{}],34:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 var MIME = {
     JAVASCRIPT: 'application/javascript',
     FLASH: 'application/x-shockwave-flash'
@@ -5487,7 +5453,7 @@ Object.freeze(MIME);
 
 module.exports = MIME;
 
-},{}],35:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 'use strict';
 
 var VPAID_EVENTS = [
@@ -5528,7 +5494,7 @@ Object.freeze(VPAID_EVENTS);
 
 module.exports = VPAID_EVENTS;
 
-},{}],36:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 'use strict';
 
 var win = require('./window');
@@ -5570,7 +5536,7 @@ exports.canPlay = function canPlay(type) {
 
 Object.freeze(exports);
 
-},{"./enums/MIME":34,"./window":44}],37:[function(require,module,exports){
+},{"./enums/MIME":33,"./window":43}],36:[function(require,module,exports){
 'use strict';
 
 var EventEmitter = require('events').EventEmitter;
@@ -5800,7 +5766,7 @@ ANDROIDVideo.prototype.resumeAd = method(function resumeAd() {
 }, true);
 
 module.exports = ANDROIDVideo;
-},{"../EventProxy":27,"../HTMLVideoTracker":28,"../enums/HTML_MEDIA_EVENTS":33,"../enums/VPAID_EVENTS":35,"../environment":36,"events":9,"lie":11,"sort-by":18,"util":25}],38:[function(require,module,exports){
+},{"../EventProxy":26,"../HTMLVideoTracker":27,"../enums/HTML_MEDIA_EVENTS":32,"../enums/VPAID_EVENTS":34,"../environment":35,"events":8,"lie":10,"sort-by":17,"util":24}],37:[function(require,module,exports){
 'use strict';
 
 var VPAID = require('./VPAID');
@@ -5914,7 +5880,7 @@ FlashVPAID.prototype.load = function load(mediaFiles, parameters) {
 
 module.exports = FlashVPAID;
 
-},{"../VPAIDVersion":31,"../enums/VPAID_EVENTS":35,"../uuid":43,"./VPAID":42,"lie":11,"querystring":16,"util":25}],39:[function(require,module,exports){
+},{"../VPAIDVersion":30,"../enums/VPAID_EVENTS":34,"../uuid":42,"./VPAID":41,"lie":10,"querystring":15,"util":24}],38:[function(require,module,exports){
 'use strict';
 
 var EventEmitter = require('events').EventEmitter;
@@ -6133,7 +6099,7 @@ HTMLVideo.prototype.resumeAd = method(function resumeAd() {
 
 module.exports = HTMLVideo;
 
-},{"../EventProxy":27,"../HTMLVideoTracker":28,"../enums/HTML_MEDIA_EVENTS":33,"../enums/VPAID_EVENTS":35,"../environment":36,"events":9,"lie":11,"sort-by":18,"util":25}],40:[function(require,module,exports){
+},{"../EventProxy":26,"../HTMLVideoTracker":27,"../enums/HTML_MEDIA_EVENTS":32,"../enums/VPAID_EVENTS":34,"../environment":35,"events":8,"lie":10,"sort-by":17,"util":24}],39:[function(require,module,exports){
 'use strict';
 
 var EventEmitter = require('events').EventEmitter;
@@ -6422,7 +6388,7 @@ IOSVideo.prototype.resumeAd = method(function resumeAd() {
 
 module.exports = IOSVideo;
 
-},{"../EventProxy":27,"../HTMLVideoTracker":28,"../enums/HTML_MEDIA_EVENTS":33,"../enums/VPAID_EVENTS":35,"../environment":36,"events":9,"lie":11,"sort-by":18,"util":25}],41:[function(require,module,exports){
+},{"../EventProxy":26,"../HTMLVideoTracker":27,"../enums/HTML_MEDIA_EVENTS":32,"../enums/VPAID_EVENTS":34,"../environment":35,"events":8,"lie":10,"sort-by":17,"util":24}],40:[function(require,module,exports){
 'use strict';
 
 var inherits = require('util').inherits;
@@ -6452,6 +6418,7 @@ JavaScriptVPAID.prototype.load = function load(mediaFiles, parameters) {
         var script = document.createElement('script');
         var video = document.createElement('video');
         function checkMyOPaused(api){
+
 		/*
 		if(self.id1==31 || self.id1 == 32){
 		console.log(["pause",self.mypaused,typeof api.player]);
@@ -6543,14 +6510,17 @@ JavaScriptVPAID.prototype.load = function load(mediaFiles, parameters) {
         script.onload = function onload() {
 		
             var vpaid = iframe.contentWindow.getVPAIDAd();
-			
+			if(self.id1==33 || self.id1 == 34){
+					console.log([55555,video]);
+		            video.style.display="none"; 
+		            }	
             var position = iframe.getBoundingClientRect();
             var slot = iframe.contentWindow.document.body;
             var version = self.vpaidVersion = new VPAIDVersion(vpaid.handshakeVersion('2.0'));
             
             function resizeAd() {
                 var position = iframe.getBoundingClientRect();
-
+                console.log([55555,position]);
                 self.resizeAd(position.width, position.height, 'normal');
             }
 
@@ -6570,8 +6540,9 @@ JavaScriptVPAID.prototype.load = function load(mediaFiles, parameters) {
                 }, event);
             });
             
-			
+				    
             self.once(EVENTS.AdLoaded, function onAdLoaded() {
+
 			    self.playDelay=0;
                 iframe.style.opacity = '1';
                 self.api = vpaid;
@@ -6596,6 +6567,7 @@ JavaScriptVPAID.prototype.load = function load(mediaFiles, parameters) {
 
 			}
 			self.once(EVENTS.AdPlaying, function onAdStart() {
+			
 			setCheckPlayedTime(6);
 			//self.playDelay=0;
 			});
@@ -6622,7 +6594,7 @@ JavaScriptVPAID.prototype.load = function load(mediaFiles, parameters) {
 
 module.exports = JavaScriptVPAID;
 
-},{"../VPAIDVersion":31,"../enums/VPAID_EVENTS":35,"../environment":36,"./VPAID":42,"lie":11,"util":25}],42:[function(require,module,exports){
+},{"../VPAIDVersion":30,"../enums/VPAID_EVENTS":34,"../environment":35,"./VPAID":41,"lie":10,"util":24}],41:[function(require,module,exports){
 'use strict';
 
 var inherits = require('util').inherits;
@@ -6710,7 +6682,7 @@ VPAID.prototype.skipAd = proxy('skipAd', EVENTS.AdSkipped);
 
 module.exports = VPAID;
 
-},{"../enums/VPAID_EVENTS":35,"events":9,"lie":11,"util":25}],43:[function(require,module,exports){
+},{"../enums/VPAID_EVENTS":34,"events":8,"lie":10,"util":24}],42:[function(require,module,exports){
 'use strict';
 
 var POSSIBILITIES = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -6726,13 +6698,13 @@ module.exports = function uuid(length) {
     return result;
 };
 
-},{}],44:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 module.exports = window;
 
-},{}],45:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 exports.VAST = require('./lib/VAST');
 
-},{"./lib/VAST":46}],46:[function(require,module,exports){
+},{"./lib/VAST":45}],45:[function(require,module,exports){
 'use strict';
 
 var LiePromise = require('lie');
@@ -7187,7 +7159,7 @@ VAST.fetch = function fetch(uri/*, options, callback*/) {
 
 module.exports = VAST;
 
-},{"./pojo_from_xml":47,"./utils/copy":49,"./utils/defaults":50,"./utils/extend":51,"./utils/nodeify_promise":52,"./xml_from_vast":59,"lie":11,"superagent":19}],47:[function(require,module,exports){
+},{"./pojo_from_xml":46,"./utils/copy":48,"./utils/defaults":49,"./utils/extend":50,"./utils/nodeify_promise":51,"./xml_from_vast":58,"lie":10,"superagent":18}],46:[function(require,module,exports){
 'use strict';
 
 var parseXML = require('./utils/parse_xml');
@@ -7420,7 +7392,7 @@ module.exports = function pojoFromXML(xml) {
     }, true);
 };
 
-},{"./utils/extend":51,"./utils/numberify":53,"./utils/parse_xml":54,"./utils/string_to_boolean":56,"./utils/timestamp_to_seconds":57,"./utils/trim_object":58}],48:[function(require,module,exports){
+},{"./utils/extend":50,"./utils/numberify":52,"./utils/parse_xml":53,"./utils/string_to_boolean":55,"./utils/timestamp_to_seconds":56,"./utils/trim_object":57}],47:[function(require,module,exports){
 'use strict';
 
 function existy(value) {
@@ -7519,7 +7491,7 @@ module.exports = function compileXML(data, trim) {
         .join('\n');
 };
 
-},{}],49:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 'use strict';
 
 var push = Array.prototype.push;
@@ -7552,7 +7524,7 @@ function copy(object/*, target, deep*/) {
 
 module.exports = copy;
 
-},{}],50:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 'use strict';
 
 var push = Array.prototype.push;
@@ -7589,7 +7561,7 @@ module.exports = function defaults(config, target) {
     }, target);
 };
 
-},{}],51:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 'use strict';
 
 module.exports = function extend(/*...objects*/) {
@@ -7603,7 +7575,7 @@ module.exports = function extend(/*...objects*/) {
     }, {});
 };
 
-},{}],52:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 'use strict';
 
 module.exports = function nodeifyPromise(promise, callback) {
@@ -7618,7 +7590,7 @@ module.exports = function nodeifyPromise(promise, callback) {
     return promise;
 };
 
-},{}],53:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 'use strict';
 
 module.exports = function numberify(value) {
@@ -7627,7 +7599,7 @@ module.exports = function numberify(value) {
     return isNaN(value) ? undefined : Number(value);
 };
 
-},{}],54:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 'use strict';
 
 /* jshint browser:true, browserify:true, node:false */
@@ -7672,7 +7644,7 @@ module.exports = function parseXML(xml) {
     };
 };
 
-},{}],55:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 'use strict';
 
 function pad(number) {
@@ -7689,7 +7661,7 @@ module.exports = function secondsToTimestamp(seconds) {
     ].map(pad).join(':');
 };
 
-},{}],56:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 'use strict';
 
 module.exports = function stringToBoolean(string) {
@@ -7701,7 +7673,7 @@ module.exports = function stringToBoolean(string) {
     }
 };
 
-},{}],57:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 'use strict';
 
 module.exports = function timestampToSeconds(timestamp) {
@@ -7714,7 +7686,7 @@ module.exports = function timestampToSeconds(timestamp) {
     }, 0);
 };
 
-},{}],58:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 'use strict';
 
 module.exports = function trimObject(object, deep) {
@@ -7735,7 +7707,7 @@ module.exports = function trimObject(object, deep) {
     }, {});
 };
 
-},{}],59:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 'use strict';
 
 var secondsToTimestamp = require('./utils/seconds_to_timestamp');
@@ -7994,18 +7966,52 @@ module.exports = function xmlFromVast(vast) {
     }, true);
 };
 
-},{"./utils/compile_xml":48,"./utils/seconds_to_timestamp":55}],60:[function(require,module,exports){
+},{"./utils/compile_xml":47,"./utils/seconds_to_timestamp":54}],59:[function(require,module,exports){
 'use strict';
 /**
  * Created by mambrin on 28.03.17.
  */
-var mydispatcher= require('./../models/dispatcher');
-var Configurator = require('./../models/configurator');
-var YouTubePlayer = require('./../models/YoutubePlayer').player;
-var BridgeLib = require('./../models/iFrameBridge');
-window.mydispatcher =mydispatcher;
-window.Configurator = Configurator; 
-window.YouTubePlayer = YouTubePlayer;
+var mydispatcher= require('./../models_1/dispatcher');
+var Configurator = require('./../models_1/configurator');
+var BridgeLib = require('./../models_1/iFrameBridge');
 window.Bridge=BridgeLib.Bridge;
 window.CallAction=BridgeLib.callAction;
-},{"./../models/YoutubePlayer":3,"./../models/configurator":4,"./../models/dispatcher":5,"./../models/iFrameBridge":7}]},{},[60])
+	function defaultFunctionReplay(config){
+	CallAction('die',{index:config.page_index},window.parent);
+    return;
+	}
+	
+
+	function parseConfig() 
+    {
+    var vars = {};
+    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) 
+	{
+      vars[key] = value;
+    });
+    return vars;
+    };
+	var c_data=parseConfig();
+    if(typeof c_data.index=='undefined')
+	{
+	c_data.index='broadcast';
+		//c_data={pid:"20",affiliate_id:"56015401b3da9",h1:"IPHONE 7"}; 
+	}
+	 var bridge=new Bridge(c_data.index);
+	 bridge.addAction("execute",function(data){
+	 console.log(['config --',data]);
+     if(typeof data.config !="undefined"){
+	     data.config.page_index=c_data.index;
+		 window.colorPixels = new mydispatcher("mycontoller","container","placeholder");
+		 window.colorPixels.playType=1;
+		 window.colorPixels.timerToClose=10;
+		 //this.timerToCloseFn();
+	 window.colorPixels.setConfig(data.config,defaultFunctionReplay);
+     }else{
+	 defaultFunctionReplay();
+	 }
+     });	
+	 
+	 CallAction('ready',{index:c_data.index},window.parent);
+	 console.log([222,bridge]);
+},{"./../models_1/configurator":3,"./../models_1/dispatcher":4,"./../models_1/iFrameBridge":6}]},{},[59])

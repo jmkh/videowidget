@@ -50,7 +50,7 @@ window.colorTrailer = true;
 	 }
 		 window.colorPixels = new mydispatcher("mycontoller","container","placeholder");
 		 window.colorPixels.playType=1;
-	 window.colorPixels.setConfig(data.config,defaultFunctionReplay);
+	     window.colorPixels.setConfig(data.config,defaultFunctionReplay);
 	 
      }
 	 
