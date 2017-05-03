@@ -3,6 +3,7 @@
  * Created by mambrin on 28.03.17.
  */
 var mydispatcher= require('./../models_1/dispatcher');
+var Configurator = require('./../models_1/configurator');
 var BridgeLib = require('./../models_1/iFrameBridge');
 window.Bridge=BridgeLib.Bridge;
 window.CallAction=BridgeLib.callAction;
@@ -25,32 +26,17 @@ window.CallAction=BridgeLib.callAction;
     if(typeof c_data.index=='undefined')
 	{
 	c_data.index='broadcast';
+		//c_data={pid:"20",affiliate_id:"56015401b3da9",h1:"IPHONE 7"}; 
 	}
 	 var bridge=new Bridge(c_data.index);
 	 bridge.addAction("execute",function(data){
-	
+	 console.log(['config --',data]);
      if(typeof data.config !="undefined"){
 	     data.config.page_index=c_data.index;
-		  mydispatcher.prototype.firstPlaySignal = function () {
-          if(this.OverplayDescFirst) return;
-          this.OverplayDescFirst=1;
-		  CallAction('startPlay',{index:c_data.index},window.parent);
-          };
-		  mydispatcher.prototype.timerToCloseFn= function () {
-          if(this.timerToClose<0){
-		   this.playExit();   
-		   return;
-             }
-		  this.timerToClose--;
-		  var self=this;
-	       setTimeout(function(){
-		   self.timerToCloseFn();
-		   }, 1000);
-          }
 		 window.colorPixels = new mydispatcher("mycontoller","container","placeholder");
 		 window.colorPixels.playType=1;
-		 window.colorPixels.timerToClose=90; 
-		 window.colorPixels.timerToCloseFn();
+		 window.colorPixels.timerToClose=10;
+		 //this.timerToCloseFn();
 	 window.colorPixels.setConfig(data.config,defaultFunctionReplay);
      }else{
 	 defaultFunctionReplay();
@@ -58,4 +44,4 @@ window.CallAction=BridgeLib.callAction;
      });	
 	 
 	 CallAction('ready',{index:c_data.index},window.parent);
-	
+	 console.log([222,bridge]);

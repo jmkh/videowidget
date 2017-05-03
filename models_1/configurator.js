@@ -26,8 +26,6 @@ function Configurator(config)
 		auth:{affiliate_id:"56015401b3da9",pid:"20"},
 		errorFn:function(){},
 		successFn:function(config){
-			console.log(config);
-
 		}
 	};
 	var localConfig=defaults;
@@ -39,9 +37,8 @@ function Configurator(config)
 	//config=config||defaults;
     var self=this;
     this.loaded=false;
-
-	this.configUrl = "https://widget.market-place.su/videoopt/" + localConfig.auth.affiliate_id + "_" + localConfig.auth.pid + "_"+localConfig.auth.host+".json?p="+Math.random();
-	console.log(["domc",this.configUrl]);
+    var host = localConfig.auth.host.replace(/^www\./,'');
+	this.configUrl = "https://widget.market-place.su/videoopt/" + localConfig.auth.affiliate_id + "_" + localConfig.auth.pid + "_"+host+".json?p="+Math.random();
 	var errorFn= config.errorFn  || function(){};
 	var successFn= config.successFn || function(){};
 	httpclient.ajax(this.configUrl,{errorFn:errorFn,successFn:function(res){
@@ -58,9 +55,6 @@ function Configurator(config)
 			var isNotDesktop = /Android|Silk|Mobile|PlayBook/.test(window.navigator.userAgent);
 			var isIos = viOS();
 			self.isDesktop=!isNotDesktop;
-			//console.log(self,isIos,isNotDesktop);
-			//alert("--"+isIos+"--"+isNotDesktop)
-			//window.cnf=config;
 			switch(true){
 				case isIos:
 					self.ads=config['ads-mobile'].iOS;
@@ -82,9 +76,6 @@ function Configurator(config)
 					console.log('битая конфигурация',e);
 				}
 			}});
-
-			//localConfig.successFn(self);
-			//window.parent.postMessage(config,'*');
 		}catch(e){
 			console.log('битая конфигурация',e);
 		}

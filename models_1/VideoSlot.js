@@ -10,7 +10,7 @@ function VideoSlot(slot) {
     this.slot.style.left="0";
     this.slot.style.width="100%";
     this.slot.style.height="100%";
-    this.slot.style.zIndex=999;
+    this.slot.style.zIndex=-1;
     this.tick=function(){}; //
     this.player=null;
 
@@ -24,7 +24,7 @@ function VideoSlot(slot) {
 VideoSlot.prototype.clear = function () {
     this.slot.innerHTML = '';
     this.slot.style.display='none';
-
+    this.slot.style.zIndex=-1;
 };
 
 
@@ -64,6 +64,7 @@ VideoSlot.prototype.init = function (player) {
 
     var self=this;
     self.clear();
+    self.slot.style.zIndex=999;
     self.player=player;
     self.player.adVolume= self.plSettings.mute?0:self.plSettings.vo;
    

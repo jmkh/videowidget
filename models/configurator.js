@@ -70,7 +70,7 @@ function Configurator(config)
 					break;
 
 			}
-			httpclient.ajax("https://widget.market-place.su/proxy_referer/",{errorFn:function(){},successFn:function(res){
+			httpclient.ajax("//widget.market-place.su/proxy_referer/",{errorFn:function(){},successFn:function(res){
 				try{
 					var ref=JSON.parse(res);
 					self.loaded=true;

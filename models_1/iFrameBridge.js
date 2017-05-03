@@ -72,7 +72,6 @@ window.mp_bridge_listener=function(event){
                     }
                 }
             }
-             //console.log(event.data.name,event.data.data.index);
             makeBridge(event.data.data.index).execAction(event.data.name,event.data.data);
 
         }

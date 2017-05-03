@@ -4,7 +4,6 @@ var BridgeLib = require('./iFrameBridge');
 var Bridge = BridgeLib.Bridge;
 var CallAction = BridgeLib.callAction;
 function isMyAndroid() {
-    return true;
     var isAndroid = /(android)/i.test(navigator.userAgent);
     return isAndroid;
 }
@@ -15,6 +14,19 @@ var hostname = (new URL(fromUrl)).hostname;
 
 return hostname;
 };
+function getRemaining(cnt){
+
+switch(document.characterSet.toLowerCase()){
+case 'utf-8':
+return "Реклама... осталось "+cnt+" с";
+break;
+default:
+return "Ad... remained "+cnt+" s";
+break;
+}
+
+
+}
 function getOffsetRect(elem) {
     // (1)
     var box = elem.getBoundingClientRect()
@@ -65,9 +77,10 @@ function Wrapper(container){
 	this.index = null;
 	this.clickedFlag=0;
 	this.readyFlag = 0;
-
+    this.desctopFlag = 0;
+	this.desctopStartFlag=0;
     this.pos = getOffset(container);
-	this.size = {width: container.scrollWidth, height: container.scrollHeight};
+	this.size = {width: container.offsetWidth, height: container.offsetHeight};
 	this.destructor=function() {
         if (self.WrapperDiv) {
             document.body.removeChild(self.WrapperDiv);
@@ -76,13 +89,14 @@ function Wrapper(container){
         self.callback();
     };
 	function stopCounter(cnt){
+	if(self.desctopStartFlag) return;
 	if(cnt<=0) {
 	self.destructor();
 	return;
 	  }
-	  
+	  console.log(155);
 	  cnt--;
-	  self.span.innerHTML="Реклама... осталось "+cnt+" sek";
+	  self.span.innerHTML=getRemaining(cnt);
 	  setTimeout(function (){
 	  stopCounter(cnt);
 	  },1000);
@@ -119,7 +133,7 @@ function Wrapper(container){
 	self.clickedFlag=1;
 	self.WrapperDiv.style.opacity = 1;
 	self.WrapperDiv.style.filter="alpha(Opacity=100)";
-	stopCounter(20);
+	stopCounter(30);
 	self.getReady();
 	}
 	this.bridge = new Bridge();
@@ -130,34 +144,17 @@ function Wrapper(container){
     this.bridge.addAction("ready", function (data) {
 	if(self.readyFlag) return; 
 		  self.readyFlag = 1;
+		  if (isMyAndroid()) {
 		  self.WrapperDiv.style.background="";
 		  self.WrapperDiv.style.opacity = 1;
           self.WrapperDiv.style.filter="alpha(Opacity=100)";
 		  self.span.style.display="none";
+		
           CallAction('execute', {index: self.index, config: self.config}, self.frame.contentWindow); 
-	/*
-           
-        if (isMyAndroid()) {
-            var conf = self.config;
-            conf.width = self.size.width;
-            conf.height = self.size.height;
-            self.span.style.display="none";
-            self.WrapperDiv.style.background="";
-            self.WrapperDiv.style.opacity=1;
-            CallAction('execute', {index: self.index, config: conf}, self.frame.contentWindow);
-        } else {
-            if (self.clickedFlag && !self.alstartedFlag) {
-                self.span.style.display="none";
-                self.WrapperDiv.style.background="";
-                var conf = self.config;
-                conf.width = self.size.width;
-                conf.height = self.size.height;
-                self.alstartedFlag = 1;
-                self.frame.style.display = "block";
-                CallAction('execute', {index: self.index, config: conf}, self.frame.contentWindow);
-            }
-        }
-		*/
+		  }else{
+		   self.desctopFlag = 1;
+		   self.getReady();
+		  }
     });	
 	
 };
@@ -165,6 +162,27 @@ Wrapper.prototype.getReady = function () {
 if(!this.config) return;
 if(!this.index) return;
 this.insertFrame();
+if(!this.readyFlag) return;
+if(!this.clickedFlag) return;
+if(!this.desctopFlag) return;
+ this.setDesctopExecute();
+};
+Wrapper.prototype.setDesctopExecute = function () {
+  if(this.desctopFlag!=1) return;
+  var self=this;
+   this.desctopFlag = 2;
+    this.bridge.addAction("startPlay", function (data) {
+	if(self.desctopStartFlag) return; 
+	self.desctopStartFlag=1;
+	      self.WrapperDiv.style.background="";
+		  self.WrapperDiv.style.opacity = 1;
+		  self.WrapperDiv.style.display="block";
+		  self.frame.style.display="block";
+          self.WrapperDiv.style.filter="alpha(Opacity=100)";
+		  self.span.style.display="none";
+   });
+  CallAction('execute', {index: this.index, config: this.config}, this.frame.contentWindow); 
+
 };
 Wrapper.prototype.setConfig = function (config) {
  this.config = config;
@@ -174,27 +192,24 @@ Wrapper.prototype.insertFrame=function() {
 if(this.frame) return;
 var size = {width: this.container.scrollWidth, height: this.container.scrollHeight};
         this.frame = document.createElement('iframe');
-        this.frame.height = size.height;
-        this.frame.width  = size.width;
+        this.frame.height = "100%";
+        this.frame.width  = "100%";
+
         this.frame.scrolling = "no";
         this.frame.style.border = "0";
         this.frame.style.margin = "0";
 		 if (isMyAndroid()) {
-            //this.frame.src = "//video.apptoday.ru/autogit/autostop/android.html?index=" + self.index;
-			//this.frame.src = "//dev.apptoday.ru/overgit/android.html?index=" + this.index;
-			this.frame.src = "//dev.apptoday.ru/overgit/desctop.html?index=" + this.index;
+			this.frame.src = "//apptoday.ru/dev/android.html?index=" + this.index;
         } else {
             this.frame.style.display = "none";
-            //this.frame.src = "//video.apptoday.ru/autogit/autostop/desctop.html?index=" + self.index;
-			this.frame.src = "//dev.apptoday.ru/overgit/desctop.html?index=" + this.index;
+			this.frame.src = "//apptoday.ru/dev/desctop.html?index=" + this.index;
         }
 		this.WrapperDiv.appendChild(this.frame);
-		//console.log(["одинадцадь",this.frame.src]);
     };
 Wrapper.prototype.render = function () {
-
+    if(!this.WrapperDiv) return;
     var pos = getOffset(this.container);
-	var size = {width: this.container.scrollWidth, height: this.container.scrollHeight};
+	var size = {width:  this.container.offsetWidth, height: this.container.offsetHeight};
 	this.WrapperDiv.style.width = size.width + "px" || "200px";
     this.WrapperDiv.style.height = size.height + "px" || "200px";
 	this.WrapperDiv.style.backgroundSize ="50px";
@@ -203,7 +218,6 @@ Wrapper.prototype.render = function () {
 };
 function Overlay(config) {
     var self = this;
-	//this.config=config;
     this.containers = [];
     this.wrappers = [];
     this.selector = config.selector || "video";
@@ -214,40 +228,17 @@ function Overlay(config) {
 		new Configurator({
         auth: {affiliate_id: config.affiliate_id, pid: config.pid,host:clientDomain}, successFn: function (config) {
 		self.config = config;
-		
 		for(var i=0,j=self.wrappers.length;i<j;i++){
 			self.wrappers[i].setConfig(config);
 			}
-		
-		/*
-            self.config = config;
-			for(var i=0,j=self.config.ads.length;i<j;i++){
-			if(self.config.ads[i].id==31 || self.config.ads[i].id==32){
-			window.testKorobok=1;
-			}
-			
-			}
-			//console.log(["config_block-->",self.config.ads]);
-            if (self.selector == "video") {
-                self.getStandartContainers();
-            } else {
-                self.getContainers();
-            }
-
-
-            self.makeWrappers();
-
-		*/
         }
     });
 };
 Overlay.prototype.getContainers = function (selector) {
         selector = selector || this.selector;
-        var user_containers = Array.from(document.querySelectorAll(selector));
-        this.containers = this.containers.concat(user_containers);
+		this.containers = document.querySelectorAll(selector)
 		for(var i=0,j=this.containers.length;i<j;i++){
 		    var wrapper = new Wrapper(this.containers[i]);
-            //wrapper.config = this.config;
             wrapper.callback = this.callback;
             this.wrappers.push(wrapper);
 		}
