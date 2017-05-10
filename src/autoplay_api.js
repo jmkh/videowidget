@@ -78,7 +78,7 @@ var Autoplay = function (config) {
         resize(data.config);
 
     });	
-    this.frame.src = "//apptoday.ru/dev/auto.html?v=1&affiliate_id="
+    this.frame.src = "//apptoday.ru/dev/autotest.html?v=1&affiliate_id="
         + this.config.auth.affiliate_id
         + "&pid=" + this.config.auth.pid
         + "&index="+bridge.index

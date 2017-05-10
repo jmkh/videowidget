@@ -12,6 +12,7 @@
     "gulp-browserify": "^0.5.1",
     "gulp-minify": "0.0.15",
     "gulp-uglify": "^2.1.2",
+    "swfobject": "^2.2.1",
     "vast-player": "^0.2.9"
   },
   "devDependencies": {

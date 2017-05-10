@@ -74,9 +74,9 @@ dispatcher.prototype.calculateParameters = function calculateParameters() {
 };
 dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 
-
-    if(1==0 && config.hasOwnProperty("testframe")){
-     config.ads=[{"id":655,"src":"https://ads.adfox.ru/252227/getCodeTest?p1=bvuqj&p2=fliy&pfc=bixdw&pfb=egbtg&fmt=1&pr=198578643&tags=inpage","priority":"123","title":"Winter","created_at":"2017-04-20 13:48:21","updated_at":"2017-04-21 16:01:04","pivot":{"id_block":"27","id_source":"31","prioritet":"0"}}];
+   // console.log(JSON.stringify(config.ads));
+    if(1==1 || config.hasOwnProperty("testframe")){
+     config.ads=[{"id":18,"src":"http://ads.adfox.ru/233872/getCode?pp=g&ps=ckql&p2=fboi","priority":"3","title":"Webarama","created_at":"2017-04-11 14:57:23","updated_at":"2017-04-11 14:57:23","pivot":{"id_block":"21","id_source":"18","prioritet":"0"}},{"id":41,"src":"https://video.market-place.su/vast/flash.xml?r={rnd}","priority":"401","title":"тест swf линеар","created_at":"2017-05-03 10:10:56","updated_at":"2017-05-03 10:10:56","pivot":{"id_block":"21","id_source":"41","prioritet":"1"}}];
 	}
 	
 	
@@ -329,8 +329,7 @@ return;
 	}
 	            var film_id = "bycredit_" + object.id;
                 var container = this.prepareFrame(film_id);
-				
-                var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
+                var player = new VASTPlayer(container, {withCredentials: true,width:self.config.width,height:self.config.height,bidgeFn:function(id,type,arr){
 
 				switch(type){
 				case "firstQuartile":
@@ -370,10 +369,14 @@ dispatcher.prototype.loadQueue = function loadQueue(player) {
 	//uri=uri.replace(/https\:\/\//,'//');
     this.loadedStatuses[player.id_local_source] = 0;
 	this.sendStatistic({id:player.id_local_source,eventName:'srcRequest'});  
+	
 	player.load(uri).then(function startAd() {
+	
 	console.log(["loaded 1"]);
+	
 	self.sendStatistic({id:player.id_local_source,eventName:'startPlayMedia',mess:''}); 
 	    player.once('AdError', function (reason) {
+		//alert(22);
 		self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
         self.formLoadQueue(player.id_local_source);
 	         
@@ -383,8 +386,12 @@ dispatcher.prototype.loadQueue = function loadQueue(player) {
 		self.dispatchQueue(player.id_local_source,{player:player,message:' остановлен '+player.local_title});
          });
 	     self.loadedStatuses[player.id_local_source] = 1;
+		 //alert(player.id_local_source);
+		 //alert([player.pType,player.local_title]);
 	     player.startAd().then(function (res) {
-	    if(!self.queueToPLay.length && player.id_local_source!=3 && player.id_local_source!=36 && player.id_local_source!=40){
+		 
+	    if(!self.queueToPLay.length && player.id_local_source!=3 && player.id_local_source!=36 && player.id_local_source!=40 && player.pType!=2){
+	   
 		player.pau=0;
 		}else{
 		player.pau=1;
@@ -401,6 +408,7 @@ dispatcher.prototype.loadQueue = function loadQueue(player) {
 		self.dispatchQueue(player.id_local_source,{player:player,message:'не играет '+player.local_title+JSON.stringify(reason)});
 	    });
 	}).catch(function(reason){
+	
     self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
 
 	self.formLoadQueue(player.id_local_source);
