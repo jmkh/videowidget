@@ -1,6 +1,7 @@
 'use strict'
 //var Configurator = require('./../models/configurator');
 var BridgeLib = require('./../models/iFrameBridge');
+var paths = require('./../models/_config');
 var Bridge = BridgeLib.Bridge;
 var CallAction = BridgeLib.callAction;
 
@@ -105,7 +106,7 @@ var Autoplay = function (config) {
     //    + "&index="+bridge.index
     //;
     function exec() {
-        self.frame.src = document.location.protocol+"//i-trailer.ru/player/html5/osipov/auto.html?v=1&affiliate_id=" + self.config.auth.affiliate_id
+        self.frame.src = document.location.protocol+paths.iframes_path+"/auto.html?v=1&affiliate_id=" + self.config.auth.affiliate_id
             + "&pid=" + self.config.auth.pid
             + "&index="+bridge.index
         ;

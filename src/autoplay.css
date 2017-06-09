@@ -44,7 +44,7 @@
     right: 5%;
 margin-left: 5px;
 
-background: url('http://apptoday.ru/ug/img/exit.png');
+background: url('../img/exit.png');
     background-size: contain!important;
     content: '';
     width: 32px;
@@ -76,10 +76,10 @@ background: url('http://apptoday.ru/ug/img/exit.png');
     background-size: contain!important;
 }
 #muteButton span.mute{
-    background: url('http://apptoday.ru/ug/img/mute2.png');
+    background: url('../img/mute2.png');
 }
 #muteButton span.unmute{
-    background: url('http://apptoday.ru/ug/img/mute.png') ;
+    background: url('../img/mute.png') ;
 
 }
 #timeoutDiv

@@ -1,5 +1,6 @@
 'use strict';
 var httpclient = require('./httpclient');
+var paths = require('./_config');
 function viOS() {
 
 	var iDevices = [
@@ -38,7 +39,8 @@ function Configurator(config)
     var self=this;
     this.loaded=false;
     var host = localConfig.auth.host.replace(/^www\./,'');
-	this.configUrl = "https://widget.market-place.su/videoopt/" + localConfig.auth.affiliate_id + "_" + localConfig.auth.pid + "_"+host+".json?p="+Math.random();
+
+	this.configUrl = paths.config_url+ localConfig.auth.affiliate_id + "_" + localConfig.auth.pid + "_"+host+".json?p="+Math.random();
 	var errorFn= config.errorFn  || function(){};
 	var successFn= config.successFn || function(){};
 
@@ -66,7 +68,7 @@ function Configurator(config)
 					break;
 
 			}
-			httpclient.ajax("https://widget.market-place.su/proxy_referer/",{errorFn:function(){},successFn:function(res){
+			httpclient.ajax(paths.referrer_url,{errorFn:function(){},successFn:function(res){
 				try{
 					var ref=JSON.parse(res);
 					self.loaded=true;
@@ -99,7 +101,7 @@ function registerView(config){
 		event: 'loadWidget',
 		mess: ''
 	};
-	var toURL = "https://api.market-place.su/Product/video/l1stat.php?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
+	var toURL = paths.statistic_url+"?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
 	// console.log(["уйди со смыслом",data.eventName,toURL]);
 	var img = new Image(1, 1);
 	img.src = toURL;
