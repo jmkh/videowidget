@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" style="margin: 0;">
+<head>
+    <meta charset="utf-8">
+    <title>HTML 5 Player</title>
+
+
+</head>
+<body style="margin: 0;padding: 0;">
+<style>
+    #advideo_adv_main_div{
+        width:100%;
+        height:350px;
+    }
+</style>
+<iframe id="advideo_adv"  allowtransparency scrolling="no"  width="100%" height="350px" style="border:0px;" frameborder="0" webkitAllowFullScreen mozallowfullscreen allowfullscreen></iframe>
+<script id="mainscript" ></script>
+<script  src="<%= path %>/advideo.js"></script>
+<script>
+    function postMessageReceive(event) {
+        console.log('adtag',event.data);
+
+
+
+
+
+    }
+
+    if (window.addEventListener) {
+        window.addEventListener("message", postMessageReceive);
+    } else {
+        window.attachEvent("onmessage", postMessageReceive);
+    }
+
+</script>
+</body>
+</html>
