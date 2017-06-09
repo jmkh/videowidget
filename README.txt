@@ -1,8 +1,4 @@
-После клонирования создать .gitignore :
-build/
-models/_config.js
-
-и файл конфигурации
+После клонирования создать файл конфигурации
 models/_config.js
 пример лежит в
 models/_config_example.js
