@@ -1,0 +1,28 @@
+'use strict';
+ var VideoEvent = function VideoEvent(type, data) {
+        this.type = type;
+        this.data = data;
+    };
+    VideoEvent.AD_READY = "ready";
+    VideoEvent.AD_VOLUME_CHANGE = "volumeChange";
+    VideoEvent.AD_ERROR = "error";
+    VideoEvent.AD_STOP = "stop";
+    VideoEvent.AD_START = "creativeView";
+    VideoEvent.AD_IMPRESSION = "impression";
+    VideoEvent.AD_MUTE = "mute";
+    VideoEvent.AD_UNMUTE = "unmute";
+    VideoEvent.AD_PAUSE = "pause";
+    VideoEvent.AD_RESUME = "resume";
+    VideoEvent.AD_REWIND = "rewind";
+    VideoEvent.VIDEO_START = "start";
+    VideoEvent.VIDEO_FIRST_QUARTILE = "firstQuartile";
+    VideoEvent.VIDEO_MIDPOINT = "midpoint";
+    VideoEvent.VIDEO_THIRD_QUARTILE = "thirdQuartile";
+    VideoEvent.VIDEO_COMPLETE = "complete";
+    VideoEvent.VIDEO_PROGRESS = "progress";
+    VideoEvent.USER_CLOSE = "closeLinear";
+    VideoEvent.USER_SKIP = "skip";
+    VideoEvent.USER_ACCEPT_INVENTATION = "acceptInvitation";
+    VideoEvent.USER_INTERACTION = "interaction";
+    VideoEvent.USER_CLICK = "click";
+module.exports = VideoEvent;	
