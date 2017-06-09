@@ -1,6 +1,6 @@
 'use strict'
-//var Configurator = require('./../models_1/configurator');
-var BridgeLib = require('./../models_1/iFrameBridge');
+//var Configurator = require('./../models/configurator');
+var BridgeLib = require('./../models/iFrameBridge');
 var Bridge = BridgeLib.Bridge;
 var CallAction = BridgeLib.callAction;
 

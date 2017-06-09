@@ -2,9 +2,9 @@
 /**
  * Created by mambrin on 28.03.17.
  */
-var mydispatcher= require('./../models_1/dispatcher');
-var Configurator = require('./../models_1/configurator');
-var BridgeLib = require('./../models_1/iFrameBridge');
+var mydispatcher= require('./../models/dispatcher');
+var Configurator = require('./../models/configurator');
+var BridgeLib = require('./../models/iFrameBridge');
 window.Bridge=BridgeLib.Bridge;
 window.CallAction=BridgeLib.callAction;
 	function defaultFunctionReplay(config){

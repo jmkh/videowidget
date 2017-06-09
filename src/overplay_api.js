@@ -1,5 +1,5 @@
 'use strict'
-var Overlay = require('./../models_1/Overlay');
+var Overlay = require('./../models/Overlay');
 if(typeof mPwConfig !="undefined" && mPwConfig.hasOwnProperty("affiliate_id")){
 var tmp= new Overlay(mPwConfig);
 }

@@ -1,5 +1,5 @@
 'use strict';
-var VPAIDInterface = require('./../models_1/VPAIDInterface');
+var VPAIDInterface = require('./../models/VPAIDInterface');
 window.getVPAIDAd = function(){
 return new VPAIDInterface();
 }
