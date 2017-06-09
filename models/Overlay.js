@@ -3,6 +3,7 @@ var Configurator = require('./configurator');
 var BridgeLib = require('./iFrameBridge');
 var Bridge = BridgeLib.Bridge;
 var CallAction = BridgeLib.callAction;
+var paths = require('./_config');
 function isMyAndroid() {
     var isAndroid = /(android)/i.test(navigator.userAgent);
     return isAndroid;
@@ -110,7 +111,7 @@ function Wrapper(container){
     this.WrapperDiv.style.opacity = 0;
 	this.WrapperDiv.style.filter="alpha(Opacity=0)";
     this.WrapperDiv.style.cursor = "pointer";
-	this.WrapperDiv.style.background = "#000000 url('//apptoday.ru/autogit/autostop/img/yt-loader.gif') 50% 50% no-repeat";
+	this.WrapperDiv.style.background = "#000000 url('"+paths.base_path+"/img/yt-loader.gif') 50% 50% no-repeat";
 	this.WrapperDiv.style.textAlign = "center";
     this.WrapperDiv.style.color = "#ffffff";
 		
@@ -211,13 +212,14 @@ var size = {width: this.container.scrollWidth, height: this.container.scrollHeig
 		 if (isMyAndroid()) {
 			//this.frame.src = "//apptoday.ru/dev/android.html?index=" + this.index;
 			//this.frame.src = "//kinodrevo.ru/frames/android.html?index=" + this.index;
-			this.frame.src = "//i-trailer.ru/player/html5/osipov/android.html?index=" + this.index;
+			this.frame.src = "/android.html?index=" + this.index;
+			this.frame.src = document.location.protocol+paths.iframes_path+"/android.html?index=" + this.index;
         } else {
             this.frame.style.display = "none";
 			//this.frame.src = "//apptoday.ru/dev/desctop.html?index=" + this.index;
 			//this.frame.src = "//kinodrevo.ru/frames/desctop.html?index=" + this.index;
 
-			this.frame.src = "//i-trailer.ru/player/html5/osipov/desctop.html?index=" + this.index;
+			this.frame.src = document.location.protocol+paths.iframes_path+"/desctop.html?index=" + this.index;
         }
 		this.WrapperDiv.appendChild(this.frame);
     };
