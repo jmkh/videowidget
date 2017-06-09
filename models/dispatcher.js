@@ -6,6 +6,8 @@ var VASTPlayer = require('vast-player');
 var CookieDriver = require('./CookieDriver');
 var VideoSlot = require('./VideoSlot');
 var BridgeLib = require('./iFrameBridge');
+var paths = require('./_config');
+
 window.Bridge = BridgeLib.Bridge;
 window.CallAction = BridgeLib.callAction;
 function dispatcher(controller_id, container_id, placeholder_id) {
@@ -43,7 +45,7 @@ function dispatcher(controller_id, container_id, placeholder_id) {
     this.OverplayAuto = 0;
     this.OverplayDescFirst = 0;
     this.queueFlashes = [];
-    this.referer = 'http://apptoday.ru';
+    this.referer = 'http://yandex.ru';
     this.current_player = null;
     var self = this;
     if (typeof this.GlobalMyGUITemp == 'undefined') {
@@ -208,7 +210,7 @@ dispatcher.prototype.timerToCloseFn = function timerToCloseFn() {
         this.LastcloseDiv = document.createElement("DIV");
 
         this.LastcloseDiv.style.marginLeft = "5px";
-        this.LastcloseDiv.style.backgroundImage = "url(https://apptoday.ru/ug/img/exit.png) ";
+        this.LastcloseDiv.style.backgroundImage = "url("+paths.base_path+"/img/exit.png) ";
         this.LastcloseDiv.style.backgroundRepeat = "no-repeat";
         this.LastcloseDiv.style.backgroundSize = "contain";
         this.LastcloseDiv.style.content = '';
@@ -287,7 +289,7 @@ dispatcher.prototype.calculatePlayed = function calculatePlayed() {
 dispatcher.prototype.prepareFrame = function prepareFrame(id) {
     var div = document.createElement('DIV');
     div.id = id;
-    //div.style.background = "#000000 url('//apptoday.ru/autogit/autostop/img/yt-loader.gif') 50% 50% no-repeat";
+
     //div.style.textAlign = "center";
     //div.style.color = "#ffffff";
     div.style.display = "none";
@@ -839,7 +841,7 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data) {
         dtm:dtm,
         mess: m
     };
-    var toURL = "https://api.market-place.su/Product/video/l1stat.php?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
+    var toURL = paths.statistic_url+"?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
 
     var img = new Image(1, 1);
     img.src = toURL;
@@ -1013,7 +1015,7 @@ dispatcher.prototype.playTvigle = function playTvigle(f1) {
         return
     }
     var self = this;
-    var uri = "https://video.market-place.su/vast/tvigle.xml?r={rnd}";
+    var uri = paths.vast_xml_path+"/tvigle.xml?r={rnd}";
     var dopAds = {
         "id": -4,
         "src": uri,
@@ -1033,7 +1035,8 @@ dispatcher.prototype.playTrailer = function playTrailer(f1) {
     }
     this.popularTrailer |= 4;
     var self = this;
-    var uri = "https://video.market-place.su/proxy_trailer/";
+
+    var uri = paths.trailers_path;
     var dopAds = {
         "id": -5,
         "src": uri,
