@@ -77,28 +77,58 @@ var Autoplay = function (config) {
     bridge.addAction("resize",function(data){
         resize(data.config);
 
-    });	
-    this.frame.src = "//apptoday.ru/dev/autotest.html?v=1&affiliate_id="
-        + this.config.auth.affiliate_id
-        + "&pid=" + this.config.auth.pid
-        + "&index="+bridge.index
-    ;
+    });
     function resize(config){
         //console.log(self)
         //if(self.config.auth.pid!="195"){
         //self.frame.height=parseInt(config.height);
         //self.frame.width=parseInt(config.width);}
         //else{
-            if(ismobile){
-                self.frame.style.maxHeight=parseInt(config.height)+"px;";
-                self.frame.width="100%";
-            }else{
-                self.frame.height=parseInt(config.height);
-                self.frame.width=parseInt(config.width);
-            }
-			console.log(['resize',self.frame.width+'/'+self.frame.height]);
+        if(ismobile){
+            self.frame.style.maxHeight=parseInt(config.height)+"px;";
+            self.frame.width="100%";
+        }else{
+            self.frame.height=parseInt(config.height);
+            self.frame.width=parseInt(config.width);
+        }
+        console.log(['resize',self.frame.width+'/'+self.frame.height]);
         //}
     }
+    //this.frame.src = "//apptoday.ru/dev/auto.html?v=1&affiliate_id="
+    //    + this.config.auth.affiliate_id
+    //    + "&pid=" + this.config.auth.pid
+    //    + "&index="+bridge.index
+    //;
+    //this.frame.src = "//kinodrevo.ru/frames/auto.html?v=1&affiliate_id="
+    //    + this.config.auth.affiliate_id
+    //    + "&pid=" + this.config.auth.pid
+    //    + "&index="+bridge.index
+    //;
+    function exec() {
+        self.frame.src = document.location.protocol+"//i-trailer.ru/player/html5/osipov/auto.html?v=1&affiliate_id=" + self.config.auth.affiliate_id
+            + "&pid=" + self.config.auth.pid
+            + "&index="+bridge.index
+        ;
+    }
+
+    if(ismobile&&0){
+        (function(){
+            var script = document.createElement("script");
+            script.type = "text/javascript";
+            script.src = "https://video.market-place.su/test/autostop/build/advark.js?v=" + Math.random();
+            script.charset = "UTF-8";
+            document.getElementsByTagName("head")[0].appendChild(script);
+            script.onload=function(){
+                MpStartAdvark({pid:self.config.auth.pid,affiliate_id:self.config.auth.affiliate_id,callback:function(){
+                    exec();
+                }});
+            }
+        })();
+    }else {
+        exec();
+    }
+
+
 };
 if (typeof mPwConfig != "undefined" && mPwConfig.hasOwnProperty("auth")) {
     var tmp = new Autoplay(mPwConfig);

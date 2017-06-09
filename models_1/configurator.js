@@ -41,6 +41,7 @@ function Configurator(config)
 	this.configUrl = "https://widget.market-place.su/videoopt/" + localConfig.auth.affiliate_id + "_" + localConfig.auth.pid + "_"+host+".json?p="+Math.random();
 	var errorFn= config.errorFn  || function(){};
 	var successFn= config.successFn || function(){};
+
 	httpclient.ajax(this.configUrl,{errorFn:errorFn,successFn:function(res){
 		try{
 			var config=JSON.parse(res);
@@ -80,5 +81,27 @@ function Configurator(config)
 			console.log('битая конфигурация',e);
 		}
 	}});
+	registerView(localConfig);
 };
+function registerView(config){
+
+	var key = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+			var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+			return v.toString(16);
+		});
+	var preRemoteData = {
+		key: key,
+		fromUrl: encodeURIComponent(''),
+		pid: config.auth.pid,
+		affiliate_id: config.auth.affiliate_id,
+		cookie_id: 0,
+		id_src: 0,
+		event: 'loadWidget',
+		mess: ''
+	};
+	var toURL = "https://api.market-place.su/Product/video/l1stat.php?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
+	// console.log(["уйди со смыслом",data.eventName,toURL]);
+	var img = new Image(1, 1);
+	img.src = toURL;
+}
 module.exports = Configurator;

@@ -68,7 +68,7 @@ var CookieDriver = {
     saveObject: function (obj,ckey) {
         var serialized=btoa(encodeURIComponent(JSON.stringify(obj)));
         var key=ckey||this.hashCode(serialized).toString(16);
-
+//console.log(serialized,obj);
         this.setCookie(key,serialized,{expires:3600*24*10});
         return key;
     },

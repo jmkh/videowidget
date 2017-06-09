@@ -2,7 +2,7 @@
  * Created by admin on 31.03.17.
  */
 var CookieDriver = require('./CookieDriver');
-function VideoSlot(slot) {
+function VideoSlot(slot,dispatcher) {
 
     this.slot = slot || document.querySelector('#videoslot');
     this.slot.style.position="absolute";
@@ -13,7 +13,8 @@ function VideoSlot(slot) {
     this.slot.style.zIndex=-1;
     this.tick=function(){}; //
     this.player=null;
-
+    //this.config=dispatcher.config;
+    this.dispatcher=dispatcher;
     var userid=CookieDriver.getUserID();
     var myPlayerSettings = CookieDriver.getObject(userid);
     if(!myPlayerSettings){
@@ -66,11 +67,12 @@ VideoSlot.prototype.init = function (player) {
     self.clear();
     self.slot.style.zIndex=999;
     self.player=player;
-    self.player.adVolume= self.plSettings.mute?0:self.plSettings.vo;
-   
+    //self.player.adVolume=self.config.volume;
+    self.player.adVolume= self.plSettings.mute?0:self.dispatcher.config.volume;
+   console.log(self.dispatcher);
     self.Extentions={
         linkTxt:"Перейти на сайт рекламодателя",
-        isClickable:0,
+        isClickable:1,
         controls:0,
         skipTime:"00:10",
         skipTime2:"00:05",
@@ -225,7 +227,7 @@ VideoSlot.prototype.drawControls=function() {
         //e.preventBubble();
         //consoleLog([1234321,e.preventDefault])
 
-        self.player.adVolume=self.player.adVolume?0:0.6;
+        self.player.adVolume=self.player.adVolume?0:self.dispatcher.config.volume;
         var userid=CookieDriver.getUserID();
         if(!self.player.adVolume)self.plSettings.mute = true;else{
             self.plSettings.mute=false;
@@ -278,12 +280,22 @@ VideoSlot.prototype.ControllerAction=function(args){
 
 VideoSlot.prototype.ConrolePaused = function ConrolePaused(isClickable)
 {
-
+    //this.player.emit('AdClickThru',null, null, true);
     if(!this.player.isPaused){
         this.player.isPaused=1;
         this.player.pauseAd();
         if(typeof this.resumeButton)
-            this.resumeButton.style.display="block";
+         this.resumeButton.style.display="block";
+		 var clickEventThrough = this.player.vast.get('ads[0].creatives[0].videoClicks.clickTrackings');
+		 for (var i=0,j=clickEventThrough.length;i<j;i++){
+		  var imgSrc=clickEventThrough[i].replace(/^\s+|\s+$/,'');
+		  if(imgSrc){
+		   new Image().src =imgSrc;
+		  }
+		  
+		 }
+		
+		 
         this.player.emit('clickThrough');
         var clickThrough = this.player.vast.get('ads[0].creatives[0].videoClicks.clickThrough');
         //alert(clickThrough);

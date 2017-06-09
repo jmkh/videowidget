@@ -36,8 +36,14 @@ var VideoPlayer = function VideoPlayer() {
             middleEvent: [false, false, false, false, false]
         };
 		var self = this;
+        this.iframe=null;
 		this.bridge=new Bridge(); 
 		this.index=this.bridge.index;
+
+        this.bridge.addAction("AdLoaded",function(data){
+            //получаем сигнал о готовности от фрейма
+            $notifyObservers.call(self.parent.context, new VPAIDEvent(VPAIDEvent.AdLoaded, {}));
+        });
 		this.bridge.addAction("adEvent",function(data){
 		if(data.hasOwnProperty("eventName")){
 		switch (data.eventName) {
@@ -83,6 +89,34 @@ var VideoPlayer = function VideoPlayer() {
             dispatcher: dispatcher,
             context: context
         };
+        //--
+        //this.flags.started = true;
+        var istyle = document.createElement('style');
+        var iframe = document.createElement('iframe');
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.display = 'block';
+        iframe.style.border = 'none';
+        iframe.scrolling="no";
+        istyle.innerHTML = ' video{display:none !important} ';
+        //console.log(window.location, window.parent.location,document.referrer, document.location.href);
+        var fromUrl = (window.location != window.parent.location) ? document.referrer : document.location.href;
+        var matches = fromUrl.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
+        var fromDomain = matches && matches[1];  // domain will be null if no match is found
+        //var fromUrl=window.parent.document.referrer;
+        //var fromDomain= (new URL(fromUrl)).hostname;
+
+
+        //iframe.src='//apptoday.ru/dev/vast.html?index='+this.index+'&affiliate_id='+this.parent.context.parameters.affiliate_id+'&pid='+this.parent.context.parameters.pid+'&width='+this.parent.context.parameters.size.width+'&height='+this.parent.context.parameters.size.height+'&site='+fromDomain;
+        iframe.src='//kinodrevo.ru/frames/vast.html?index='+this.index+'&affiliate_id='+this.parent.context.parameters.affiliate_id+'&pid='+this.parent.context.parameters.pid+'&width='+this.parent.context.parameters.size.width+'&height='+this.parent.context.parameters.size.height+'&site='+fromDomain;
+
+
+        this.iframe=iframe;
+
+
+        this.parent.context.parameters.slot.appendChild(istyle);
+        this.parent.context.parameters.slot.appendChild(iframe);
+        //--
     /*
         var extensions = data.xmlLoader.getExtensions();
 
@@ -95,7 +129,7 @@ var VideoPlayer = function VideoPlayer() {
             linkText: decodeURIComponent(extensions.linkText || "%D0%9F%D0%B5%D1%80%D0%B5%D0%B9%D1%82%D0%B8%20%D0%BD%D0%B0%20%D1%81%D0%B0%D0%B9%D1%82%20%D1%80%D0%B5%D0%BA%D0%BB%D0%B0%D0%BC%D0%BE%D0%B4%D0%B0%D1%82%D0%B5%D0%BB%D1%8F"),
             allowBlock: extensions.Allowblock
         };
-		
+
         if(this.extensions.controls) {
             var style = bo[ma]("link");
             style.href = data.mediapath + "wb-video-player.css";
@@ -108,13 +142,13 @@ var VideoPlayer = function VideoPlayer() {
             style.rel = "stylesheet";
             this.root.appendChild(style);
 		}
-    
+
         this.adLink = data.xmlLoader.getAdLink();
         this.mediaPlayer = this.root.appendChild(bo[ma]("video"));
 		this.mediaPlayer.context = this;
         this.mediaPlayer.poster = extensions.poster || data.mediapath + "poster.png";
         this.mediaPlayer.className = "wb-area-media";
-    
+
         //mobile only
         this.mediaPlayer.setAttribute('playsinline', '');
         this.mediaPlayer.setAttribute('webkit-playsinline', '');
@@ -122,7 +156,7 @@ var VideoPlayer = function VideoPlayer() {
         VideoPlayer.allowEvents.forEach(function (eventName) {
             this.mediaPlayer.addEventListener(eventName, VideoPlayer.videoEventHandler, true);
         }.bind(this));
-    
+
         var mediaFiles = data.xmlLoader.getMediaFiles(),
             canplay = false;
         for (var i = 0; i < mediaFiles.length; i++) {
@@ -156,28 +190,54 @@ var VideoPlayer = function VideoPlayer() {
         if (this.flags.started || this.flags.stopped) {
             return;
         }
-		 
+        console.log('play_')
+        CallAction('playAd',{index:this.index},this.iframe.contentWindow);
+		 //--------------- old
+       // this.flags.started = true;
+		//var istyle = document.createElement('style');
+		//var iframe = document.createElement('iframe');
+		//iframe.style.width = '100%';
+       // iframe.style.height = '100%';
+       // iframe.style.display = 'block';
+       // iframe.style.border = 'none';
+		//iframe.scrolling="no";
+		//istyle.innerHTML = ' video{display:none !important} ';
+       // //console.log(window.location, window.parent.location,document.referrer, document.location.href);
+       //var fromUrl = (window.location != window.parent.location) ? document.referrer : document.location.href;
+       // var matches = fromUrl.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
+       // var fromDomain = matches && matches[1];  // domain will be null if no match is found
+		//  //var fromUrl=window.parent.document.referrer;
+       //   //var fromDomain= (new URL(fromUrl)).hostname;
+       //
+       //
+		////iframe.src='//apptoday.ru/dev/vast.html?index='+this.index+'&affiliate_id='+this.parent.context.parameters.affiliate_id+'&pid='+this.parent.context.parameters.pid+'&width='+this.parent.context.parameters.size.width+'&height='+this.parent.context.parameters.size.height+'&site='+fromDomain;
+		//iframe.src='//kinodrevo.ru/frames/vast.html?index='+this.index+'&affiliate_id='+this.parent.context.parameters.affiliate_id+'&pid='+this.parent.context.parameters.pid+'&width='+this.parent.context.parameters.size.width+'&height='+this.parent.context.parameters.size.height+'&site='+fromDomain;
+       //
+       //
+       // this.iframe=iframe;
+		//VideoPlayer.$dispatchEvent.call(this, VideoEvent.AD_START, this.getMetaData());
+       // VideoPlayer.$dispatchEvent.call(this, VideoEvent.AD_IMPRESSION, this.getMetaData());
+		//
+		//this.parent.context.parameters.slot.appendChild(istyle);
+		//this.parent.context.parameters.slot.appendChild(iframe);
+        //-------old
+
         this.flags.started = true;
-		var istyle = document.createElement('style');
-		var iframe = document.createElement('iframe');
-		iframe.style.width = '100%';
-        iframe.style.height = '100%';
-        iframe.style.display = 'block';
-        iframe.style.border = 'none';
-		iframe.scrolling="no";
-		istyle.innerHTML = ' video{display:none !important} ';
-		
-		  var fromUrl=window.parent.document.referrer;
-	      var fromDomain= (new URL(fromUrl)).hostname;
-         
-		
-		iframe.src='//apptoday.ru/dev/vast.html?index='+this.index+'&affiliate_id='+this.parent.context.parameters.affiliate_id+'&pid='+this.parent.context.parameters.pid+'&width='+this.parent.context.parameters.size.width+'&height='+this.parent.context.parameters.size.height+'&site='+fromDomain;
-		VideoPlayer.$dispatchEvent.call(this, VideoEvent.AD_START, this.getMetaData());
+
+        VideoPlayer.$dispatchEvent.call(this, VideoEvent.AD_START, this.getMetaData());
         VideoPlayer.$dispatchEvent.call(this, VideoEvent.AD_IMPRESSION, this.getMetaData());
-		
-		this.parent.context.parameters.slot.appendChild(istyle); 
-		this.parent.context.parameters.slot.appendChild(iframe); 
-    };	
+
+
+    };
+    VideoPlayer.prototype.pause=function pause() {
+        console.log("pause");
+        CallAction('pauseAd',{index:this.index},this.iframe.contentWindow);
+    };
+
+    VideoPlayer.prototype.resume=function resume() {
+        console.log("resume");
+        CallAction('resumeAd',{index:this.index},this.iframe.contentWindow);
+    };
     VideoPlayer.$dispatchEvent = function $dispatchEvent(type, data) {
 	    if(this.flags.canSendEvent) {
 		this.parent.dispatcher.call(this.parent.context, new VideoEvent(type, data, this));
@@ -229,7 +289,7 @@ VPAIDInterface.prototype.initAd = function initAd(width, height, viewMode, desir
                 xmlLoader: ""
          }, $mediaEventHandler, this);
 	
-		$notifyObservers.call(this, new VPAIDEvent(VPAIDEvent.AdLoaded, {}));
+		//$notifyObservers.call(this, new VPAIDEvent(VPAIDEvent.AdLoaded, {}));
       
 		
     };
@@ -263,13 +323,15 @@ VPAIDInterface.prototype.initAd = function initAd(width, height, viewMode, desir
         this.parameters.slot.style.height = height + "px";
     };
     VPAIDInterface.prototype.pauseAd = function () {
+        //console.log("pauseAd",this.flags);
         if(!this.flags.stopped && this.flags.started) {
-           // this.mediaPlayer.pause();
+            //console.log("pauseAd",this.flags);
+            this.mediaPlayer.pause();
         }
     };
     VPAIDInterface.prototype.resumeAd = function () {
         if(!this.flags.stopped && this.flags.started) {
-           // this.mediaPlayer.resume();
+            this.mediaPlayer.resume();
         }
     };
     VPAIDInterface.prototype.expandAd = function () {

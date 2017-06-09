@@ -490,7 +490,7 @@ function callAction(name,data,window) {
     // посылает сообщение для указанного window.
 
     // action содержит в себе имя события и данные для развертывания
-	
+	//console.log([name,data,window]);
     window.postMessage({name:name,data:data,bridgeAction:true},'*');
 }
 function getUniqueIndex(){

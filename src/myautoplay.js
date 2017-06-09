@@ -6,7 +6,9 @@ window.Bridge=BridgeLib.Bridge;
 window.CallAction=BridgeLib.callAction;
 function getClientDomain(){
 var fromUrl = (window.location != window.parent.location) ? document.referrer : document.location.href;
-var hostname = (new URL(fromUrl)).hostname;
+var matches = fromUrl.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
+    var hostname = matches && matches[1];  // domain will be null if no match is found
+//var hostname = (new URL(fromUrl)).hostname;
 return hostname;
 };
 	function defaultFunctionReplay(config){
