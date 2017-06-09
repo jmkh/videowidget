@@ -58,6 +58,7 @@ function dispatcher(controller_id, container_id, placeholder_id) {
     this.fromUrl = (window.location != window.parent.location) ? document.referrer : document.location.href;
     window.myfromUrl = this.fromUrl;
     window.myRegSrc = {3: 0, 40: 2,55: 2,73: 2,82:2, 43: 2, 44: 2, 36: 2};
+    window.myRegSrc = paths.myRegSrc_;
     var matches = this.fromUrl.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
     this.fromDomain = matches && matches[1];  // domain will be null if no match is found
     //console.log(["мой домен",domain]);
