@@ -60,7 +60,11 @@ var config={};
                 "updated_at": "2017-03-22 16:29:45",
                 "pivot": {"id_block": "-3", "id_source": "-7", "prioritet": "0"}
             };
-            colorPixels.playAds(dopAds, function(){
+            colorPixels.playAds(dopAds, function(error){
+                if(typeof error!="undefined"){
+                    console.log('ERROR!!!!',error);
+                    //return;
+                }
                 console.log("MyVastEnded");
                 CallAction('adEvent', {index: config.page_index, eventName: "MyVastEnded"}, window.parent);
             });
