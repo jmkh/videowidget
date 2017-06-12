@@ -37,7 +37,7 @@ var config={};
         window.colorPixels.timerToClose = 80;
         window.colorPixels.timerToCloseFn();
         window.colorPixels.config.page_index=config.page_index;
-        window.colorPixels.config.volume=config.AdVolume;
+
 
         //window.colorPixels.setConfig(config,defaultFunctionReplay);
         var index = c_data.index;
@@ -47,6 +47,7 @@ var config={};
             console.log("initAd!!!");
             //console.log(data.link);
             link=data.link;
+            window.colorPixels.config.volume=data.AdVolume;
             //window.colorPixels.setConfig(config, defaultFunctionReplay);
         });
         bridge.addAction("playAd", function (data) {
