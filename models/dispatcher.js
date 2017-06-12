@@ -929,6 +929,7 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
 
                     });
             });
+        self.current_player=player;
 
         //console.log(self.config.page_index,33);
         //EVENTS.forEach(function subscribe(event) {
