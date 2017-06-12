@@ -68,8 +68,9 @@ VideoSlot.prototype.init = function (player) {
     self.slot.style.zIndex=999;
     self.player=player;
     //self.player.adVolume=self.config.volume;
-    self.player.adVolume= self.plSettings.mute?0:self.dispatcher.config.volume;
-   console.log(self.dispatcher);
+
+    self.player.adVolume= self.plSettings.mute?0.0:self.dispatcher.config.volume;
+   console.log(self);
     self.Extentions={
         linkTxt:"Перейти на сайт рекламодателя",
         isClickable:1,
@@ -227,7 +228,7 @@ VideoSlot.prototype.drawControls=function() {
         //e.preventBubble();
         //consoleLog([1234321,e.preventDefault])
 
-        self.player.adVolume=self.player.adVolume?0:self.dispatcher.config.volume;
+        self.player.adVolume=self.player.adVolume?0.0:self.dispatcher.config.volume;
         var userid=CookieDriver.getUserID();
         if(!self.player.adVolume)self.plSettings.mute = true;else{
             self.plSettings.mute=false;
