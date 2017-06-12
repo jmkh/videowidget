@@ -7,6 +7,7 @@ var CookieDriver = require('./CookieDriver');
 var VideoSlot = require('./VideoSlot');
 var BridgeLib = require('./iFrameBridge');
 var paths = require('./_config');
+//var EVENTS = require('./VPAIDEvent');
 
 window.Bridge = BridgeLib.Bridge;
 window.CallAction = BridgeLib.callAction;
@@ -857,12 +858,10 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
     var container = this.prepareFrame(film_id);
     var player = new VASTPlayer(container, {
         withCredentials: true, bidgeFn: function (id, type, arr) {
-            switch (type) {
-                case "firstQuartile":
-
-
-                    break;
-            }
+                if (typeof self.config.page_index != "undefined") {
+                    //console.log(type);
+                    CallAction('adEvent', {index: self.config.page_index, eventName: type}, window.parent);
+                }
 
         }
     });
@@ -892,6 +891,56 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
             self.VideoSlot.clear();
             f1();
         });
+        [
+            'AdLoaded',
+            'AdStarted',
+            'AdStopped',
+            'AdSkipped',
+            'AdSkippableStateChange',
+            'AdSizeChange',
+            'AdLinearChange',
+            'AdDurationChange',
+            'AdExpandedChange',
+            'AdRemainingTimeChange',
+            'AdVolumeChange',
+            'AdImpression',
+            'AdVideoStart',
+            'AdVideoFirstQuartile',
+            'AdVideoMidpoint',
+            'AdVideoThirdQuartile',
+            'AdVideoComplete',
+            'AdClickThru',
+            'AdInteraction',
+            'AdUserAcceptInvitation',
+            'AdUserMinimize',
+            'AdUserClose',
+            'AdPaused',
+            'AdPlaying',
+            'AdLog',
+            'AdError'
+
+        ].forEach(function(event){
+                    //console.log(event)
+
+                    player.on(event, function () {
+                        if (typeof self.config.page_index != "undefined") {
+                            CallAction('adEvent', {index: self.config.page_index, eventName: event}, window.parent);
+                        }
+
+                    });
+            });
+
+        //console.log(self.config.page_index,33);
+        //EVENTS.forEach(function subscribe(event) {
+        //    console.log(event)
+        //
+        //    player.on(event, function () {
+        //        if (typeof self.config.page_index != "undefined") {
+        //            CallAction('adEvent', {index: self.config.page_index, eventName: event}, window.parent);
+        //        }
+        //
+        //    });
+        //});
         player.once('AdStopped', function () {
             player.container.style.display = "none";
             self.VideoSlot.clear();
