@@ -62,7 +62,7 @@ var config={};
             };
             colorPixels.playAds(dopAds, function(error){
                 if(typeof error!="undefined"){
-                    console.log('ERROR!!!!',error);
+                    console.log('ERROR!!!',error);
                     //return;
                 }
                 console.log("MyVastEnded");
