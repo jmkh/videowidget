@@ -37,6 +37,7 @@ var config={};
         window.colorPixels.timerToClose = 80;
         window.colorPixels.timerToCloseFn();
         window.colorPixels.config.page_index=config.page_index;
+        window.colorPixels.config.volume=config.AdVolume;
 
         //window.colorPixels.setConfig(config,defaultFunctionReplay);
         var index = c_data.index;
