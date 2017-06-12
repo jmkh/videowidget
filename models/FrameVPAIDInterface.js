@@ -42,7 +42,7 @@ var VideoPlayer = function VideoPlayer() {
 
         this.bridge.addAction("AdLoaded",function(data){
             //получаем сигнал о готовности от фрейма
-            console.log(1010,window.parent.colorPixels.config);
+            //console.log(1010,window.parent.colorPixels.config);
             CallAction('initAd',{index:self.index,AdVolume:window.parent.colorPixels.config.volume,link:self.parent.context.parameters.link},self.iframe.contentWindow);
             $notifyObservers.call(self.parent.context, new VPAIDEvent(VPAIDEvent.AdLoaded, {}));
         });
@@ -133,7 +133,7 @@ var VideoPlayer = function VideoPlayer() {
         if (this.flags.started || this.flags.stopped) {
             return;
         }
-        console.log('play_')
+        //console.log('play_')
         CallAction('playAd',{index:this.index},this.iframe.contentWindow);
 		 //--------------- old
        // this.flags.started = true;
@@ -173,12 +173,12 @@ var VideoPlayer = function VideoPlayer() {
 
     };
     VideoPlayer.prototype.pause=function pause() {
-        console.log("pause");
+        //console.log("pause");
         CallAction('pauseAd',{index:this.index},this.iframe.contentWindow);
     };
 
     VideoPlayer.prototype.resume=function resume() {
-        console.log("resume");
+        //console.log("resume");
         CallAction('resumeAd',{index:this.index},this.iframe.contentWindow);
     };
     VideoPlayer.$dispatchEvent = function $dispatchEvent(type, data) {

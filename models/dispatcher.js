@@ -887,7 +887,7 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
 
     player.load(uri).then(function startAd() {
         player.once('AdError', function (reason) {
-            console.log('error!',reason)
+            //console.log('error!',reason)
             player.container.style.display = "none";
             self.VideoSlot.clear();
             f1();
@@ -932,17 +932,7 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
             });
         self.current_player=player;
 
-        //console.log(self.config.page_index,33);
-        //EVENTS.forEach(function subscribe(event) {
-        //    console.log(event)
-        //
-        //    player.on(event, function () {
-        //        if (typeof self.config.page_index != "undefined") {
-        //            CallAction('adEvent', {index: self.config.page_index, eventName: event}, window.parent);
-        //        }
-        //
-        //    });
-        //});
+
         player.once('AdStopped', function () {
             player.container.style.display = "none";
             self.VideoSlot.clear();
@@ -964,12 +954,9 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
             container.style.display = "block";
 
             if (player.pType == 3) {
-                if (player.id_local_source == -5) { //трейлер
 
-                    player.__private__.player.video.controls = true;
-                } else {
                     self.VideoSlot.init(player);
-                }
+
             }
             if (player.pType != 4) {
                 player.container.style.opacity = "1";
@@ -1013,15 +1000,15 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
         }).catch(function (reason) {
             player.container.style.display = "none";
             self.VideoSlot.clear();
-            console.log(reason)
-            console.log('error2')
+            //console.log(reason)
+            //console.log('error2')
             f1(reason);
         });
 
     }).catch(function (reason) {
         player.container.style.display = "none";
         self.VideoSlot.clear();
-        console.log('error3')
+        //console.log('error3')
         f1(reason);
     });
 
