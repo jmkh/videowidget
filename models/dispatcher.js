@@ -887,6 +887,7 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
 
     player.load(uri).then(function startAd() {
         player.once('AdError', function (reason) {
+            console.log('error!',reason)
             player.container.style.display = "none";
             self.VideoSlot.clear();
             f1();
