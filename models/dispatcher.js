@@ -980,12 +980,7 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
                 player.resumeAd();
 
             } else {
-                if (player.id_local_source == -4) { //твигл
-                    player.container.style.display = "none";
-                    self.VideoSlot.clear();
-                    f1();
-                    return;
-                }
+
                 var took = 1;
                 player.on('AdRemainingTimeChange', function (args) {
                     if (took) {
@@ -1018,15 +1013,16 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
         }).catch(function (reason) {
             player.container.style.display = "none";
             self.VideoSlot.clear();
+            console.log(reason)
             console.log('error2')
-            f1();
+            f1(reason);
         });
 
     }).catch(function (reason) {
         player.container.style.display = "none";
         self.VideoSlot.clear();
         console.log('error3')
-        f1();
+        f1(reason);
     });
 
 };
