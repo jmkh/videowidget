@@ -68,9 +68,9 @@ VideoSlot.prototype.init = function (player) {
     self.slot.style.zIndex=999;
     self.player=player;
     //self.player.adVolume=self.config.volume;
-
+    console.log(self)
     self.player.adVolume= self.plSettings.mute?0.0:self.dispatcher.config.volume;
-   console.log(self);
+  ;
     self.Extentions={
         linkTxt:"Перейти на сайт рекламодателя",
         isClickable:1,
