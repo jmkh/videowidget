@@ -1025,6 +1025,7 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
     }).catch(function (reason) {
         player.container.style.display = "none";
         self.VideoSlot.clear();
+        console.log('error3')
         f1();
     });
 
