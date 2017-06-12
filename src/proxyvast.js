@@ -68,7 +68,7 @@ var config={};
 
         function player_delay(cnt,funct) {
             if (cnt <= 0) return;
-            //console.log(colorPixels.current_player);
+            console.log(colorPixels.current_player);
             if (!colorPixels.current_player) {
                 window.setTimeout(function () {
 
