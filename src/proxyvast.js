@@ -45,7 +45,7 @@ var config={};
             var link=null;
         bridge.addAction("initAd", function (data) {
             console.log("initAd!!!");
-            console.log(data);
+            //console.log(data);
             link=data.link;
             window.colorPixels.config.volume=data.AdVolume;
             window.colorPixels.config.height=data.height;
