@@ -43,7 +43,14 @@ var VideoPlayer = function VideoPlayer() {
         this.bridge.addAction("AdLoaded",function(data){
             //получаем сигнал о готовности от фрейма
             //console.log(1010,window.parent.colorPixels.config);
-            CallAction('initAd',{index:self.index,AdVolume:window.parent.colorPixels.config.volume,link:self.parent.context.parameters.link},self.iframe.contentWindow);
+            CallAction('initAd',
+                {
+                    index:self.index,
+                    AdVolume:window.parent.colorPixels.config.volume,
+                    width:window.parent.colorPixels.config.width,
+                    height:window.parent.colorPixels.config.height,
+                    link:self.parent.context.parameters.link
+                },self.iframe.contentWindow);
             $notifyObservers.call(self.parent.context, new VPAIDEvent(VPAIDEvent.AdLoaded, {}));
         });
 		this.bridge.addAction("adEvent",function(data){

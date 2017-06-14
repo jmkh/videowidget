@@ -45,9 +45,11 @@ var config={};
             var link=null;
         bridge.addAction("initAd", function (data) {
             console.log("initAd!!!");
-            //console.log(data.link);
+            console.log(data);
             link=data.link;
             window.colorPixels.config.volume=data.AdVolume;
+            window.colorPixels.config.height=data.height;
+            window.colorPixels.config.width=data.width;
             //window.colorPixels.setConfig(config, defaultFunctionReplay);
         });
         bridge.addAction("playAd", function (data) {

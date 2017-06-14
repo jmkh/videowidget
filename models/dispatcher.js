@@ -857,7 +857,7 @@ dispatcher.prototype.playAds = function playAds(dopAds, f1) {
     var film_id = "bycredit_" + dopAds.id;
     var container = this.prepareFrame(film_id);
     var player = new VASTPlayer(container, {
-        withCredentials: true, bidgeFn: function (id, type, arr) {
+        withCredentials: true,width: self.config.width, height: self.config.height, bidgeFn: function (id, type, arr) {
                 if (typeof self.config.page_index != "undefined") {
                     //console.log(type);
                     CallAction('adEvent', {index: self.config.page_index, eventName: type}, window.parent);
