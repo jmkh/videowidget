@@ -10,11 +10,13 @@ gulp.task('js', function() {
    .pipe(minify())
    .pipe(gulp.dest('build'));
  });
+
 gulp.task('css', function(){
    gulp.src('src/*.css')
    .pipe(minify())
    .pipe(gulp.dest('build'));
 });
+
 gulp.task('html', function(){
    gulp.src('frames_tpl/*.html')
    .pipe(template({path: paths.scripts_path,vast_path:paths.scripts_path}))
@@ -40,6 +42,12 @@ gulp.task('advideo', function() {
 });
 gulp.task('dispatcher', function() {
     gulp.src('src/myautoplay.js')
+        .pipe(browserify())
+        .pipe(minify())
+        .pipe(gulp.dest('build'));
+});
+gulp.task('inpage', function() {
+    gulp.src('src/inpage.js')
         .pipe(browserify())
         .pipe(minify())
         .pipe(gulp.dest('build'));

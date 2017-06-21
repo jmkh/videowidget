@@ -125,7 +125,7 @@ dispatcher.prototype.calculateParameters = function calculateParameters() {
 };
 dispatcher.prototype.setConfig = function setConfig(config, collbackFunction) {
 
-    //console.log(["уровень звука",config.volume]);
+    console.log(["уровень конфига",config]);
     if (0 == 1 && config.hasOwnProperty("testframe")) {
         /*
          config.ads=[{"id":33,"src":"https://instreamvideo.ru/core/vpaid/linear?pid=7&wtag=kinodrevo&&vr=1&rid={rnd}&puid7=1&puid8=7&puid10=1&puid11=1&puid12=16&dl=&duration=360&vn=nokia","priority":"3","title":"Webarama","created_at":"2017-04-11 14:57:23","updated_at":"2017-04-11 14:57:23","pivot":{"id_block":"21","id_source":"18","prioritet":"0"}},{"id":42,"src":"https://video.market-place.su/vast/flash.xml?r={rnd}","priority":"401","title":"тест swf линеар","created_at":"2017-05-03 10:10:56","updated_at":"2017-05-03 10:10:56","pivot":{"id_block":"21","id_source":"41","prioritet":"1"}},{"id":34,"src":"https://instreamvideo.ru/core/vpaid/linear?pid=7&wtag=kinodrevo&&vr=1&rid={rnd}&puid7=1&puid8=7&puid10=1&puid11=1&puid12=16&dl=&duration=360&vn=nokia","priority":"3","title":"Webarama","created_at":"2017-04-11 14:57:23","updated_at":"2017-04-11 14:57:23","pivot":{"id_block":"21","id_source":"18","prioritet":"0"}},{"id":41,"src":"https://video.market-place.su/vast/flash.xml?r={rnd}","priority":"401","title":"тест swf линеар второй (беспокойный)","created_at":"2017-05-03 10:10:56","updated_at":"2017-05-03 10:10:56","pivot":{"id_block":"21","id_source":"41","prioritet":"1"}}];
@@ -583,7 +583,7 @@ dispatcher.prototype.loadQueue = function loadQueue(player) {
     player.load(uri).then(function startAd() {
 
 
-        self.sendStatistic({id: player.id_local_source, eventName: 'startPlayMedia', mess: ''});
+         self.sendStatistic({id: player.id_local_source, eventName: 'startPlayMedia', mess: ''});
          player.once('AdError', function (reason) {
             console.log([7441,player.id_local_source,"error",player.pType,player.local_title]);
             self.sendStatistic({id: player.id_local_source, eventName: 'errorPlayMedia', mess: ''});
@@ -667,8 +667,9 @@ dispatcher.prototype.playQueue = function playQueue() {
 
     this.setSemaphore(player.id_local_source);
 	if(this.loadedStatuses[player.id_local_source]!=1){
-	//console.log([74411,"немогу сделать play - не тот статус",this.loadedStatuses[player.id_local_source],player.pType,player.local_title]);
+	console.log([74411,"немогу сделать play - не тот статус",this.loadedStatuses[player.id_local_source],player.pType,player.local_title]);
 	this.deleteSemaphore(player.id_local_source);
+	this.dispatchQueue(player.id_local_source, {player: player, message: ' не дал ничего ' + player.local_title});
 	//this.playQueue();
 	return;
 	}
@@ -755,6 +756,7 @@ dispatcher.prototype.playQueue = function playQueue() {
     }
     //this.current_player=player;
     player.on('AdRemainingTimeChange', function (args) {
+	if(!args || !args.hasOwnProperty('sec')) return;
         if(typeof args!="undefined"&&typeof args.sec!="undefined"&&typeof player.ftime!="undefined"&&player.ftime) {
             // console.log( player.ftime,args.sec);
             if( player.ftime==args.sec){
@@ -801,11 +803,14 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data) {
     if (typeof this.cacheStatisticIndexes[data.id][data.eventName] != 'undefined') {
         return;
     }
+	
+	
+	
     var dtm=Date.now();
     switch (data.eventName) {
         case "filterPlayMedia":
             var limits=CookieDriver.getObject("mp_src_limits");
-            //console.log(433,limits);
+           
             if(limits&&typeof  limits[data.id]!="undefined") {
                 limits[data.id].play_cnt+=1;
                 limits[data.id].last_play=dtm;
@@ -830,7 +835,7 @@ dispatcher.prototype.sendStatistic = function sendStatistic(data) {
 
     this.cacheStatisticIndexes[data.id][data.eventName] = 1;
 	
-
+     console.log([55555,data.id,data.eventName]);
     //console.log(dtm)
     var preRemoteData = {
         key: this.GlobalMyGUITemp,

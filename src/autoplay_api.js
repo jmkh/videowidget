@@ -106,6 +106,7 @@ var Autoplay = function (config) {
     //    + "&index="+bridge.index
     //;
     function exec() {
+	    
         self.frame.src = document.location.protocol+paths.iframes_path+"/auto.html?v=1&affiliate_id=" + self.config.auth.affiliate_id
             + "&pid=" + self.config.auth.pid
             + "&index="+bridge.index

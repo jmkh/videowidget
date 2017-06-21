@@ -49,6 +49,7 @@ return hostname;
 	}
 	//c_data={pid:"20",affiliate_id:"56015401b3da9",h1:"IPHONE 7"};
 	var clientDomain=getClientDomain();
+	
 		new Configurator({
         auth: {affiliate_id: c_data.affiliate_id, pid:c_data.pid,host:clientDomain}, successFn: function (config) {
 				config.page_index=c_data.index;
@@ -56,7 +57,7 @@ return hostname;
 				config.site=c_data.site;
 				}
 				CallAction('resize',{index:config.page_index,config:config},window.parent);
-		window.colorPixels = new mydispatcher("mycontoller","container","placeholder");
+		 window.colorPixels = new mydispatcher("mycontoller","container","placeholder");
 		 window.colorPixels.playType=1;
 		 window.colorPixels.timerToClose=90; 
 		 window.colorPixels.timerToCloseFn();

@@ -33,6 +33,7 @@ VideoSlot.prototype.renderControl = function (type,args) {
 
     switch (type){
         case "timeoutEl":
+		if(!args || !args.hasOwnProperty('sec')) return;
             var ss=parseInt(args.dur)-parseInt(args.sec);
             ss=(ss>0)?ss:0;
             var txt="<span class='innerSpan'>Реклама: "+
@@ -246,7 +247,7 @@ VideoSlot.prototype.drawControls=function() {
 
 
 VideoSlot.prototype.ControllerAction=function(args){
-
+if(!args || !args.hasOwnProperty('sec')) return;
     var self=this;
     if(typeof self.player.timeoutDiv=="undefined"){
         return;
